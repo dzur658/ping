@@ -16,6 +16,7 @@ import xml.etree.ElementTree as ET
 import re
 import pprint
 from typing import List, Dict, Any, Optional
+import json
 
 # This mapping dictionary is the core of the modular design.
 # To extract a new piece of data, add an entry here.
@@ -191,5 +192,10 @@ if __name__ == '__main__':
     else:
         print(f"Successfully parsed data for {len(parsed_data)} services.\n")
         # 2. Iterate and "store" each result (currently prints to console)
+
+        # json output
+        # json_output = json.dumps(parsed_data, indent=4)
+        # print(json_output)
+
         for service in parsed_data:
             store_in_database(service)
