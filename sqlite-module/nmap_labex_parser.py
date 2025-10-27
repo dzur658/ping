@@ -69,6 +69,16 @@ def parse_nmap_xml(xml_file):
                         service_name = ""
                         service_info = ""
 
+                    ## Extract vulscan script output if available
+                    vulscan = port.find("script[@id='vulscan']")
+                    if vulscan is not None:
+                        vulscan_extracted = str(vulscan.get('output')).splitlines()
+                        print("\nVulnerabilities Found:")
+                        print("-" * 50)
+                        for vuln in vulscan_extracted:
+                            print(vuln)
+                        print("-" * 50)
+
                     print(f"{port_id}/{protocol:<5} {port_state:<10}{service_name:<15}{service_info}")
 
             ## Get OS detection information
