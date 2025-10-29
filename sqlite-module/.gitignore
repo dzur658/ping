@@ -1,6 +1,9 @@
-# ignore sample xml output for sensitivity
+# ignore sample datastructured output for sensitivity
 example_output.xml
 extracted_data.json
+
+# ignore database files
+network_scans.db
 
 # ignore pycache
 __pycache__/

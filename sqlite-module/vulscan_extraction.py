@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Author: Alex Dzurec
 # Date Created: 10/28/2025
 # Model Used for Generation: Gemini 2.5 Pro
