@@ -11,8 +11,6 @@
 def create_tables(conn):
     cursor = conn.cursor()
     
-    # I've corrected the typos from the diagram (e.g., serviceProduct)
-    # Using 'IF NOT EXISTS' is safe to run every time.
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Scan (
         scanId INTEGER PRIMARY KEY,
@@ -31,6 +29,17 @@ def create_tables(conn):
         status TEXT,
         inferOs TEXT,
         FOREIGN KEY (scanId) REFERENCES Scan (scanId)
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS llm (
+        responseId INTEGER PRIMARY KEY,
+        hostId INTEGER NOT NULL,
+        interType TEXT NOT NULL,
+        content TEXT,
+        timestamp INTEGER NOT NULL,
+        FOREIGN KEY (hostId) REFERENCES hosts (hostId)
     );
     """)
 
