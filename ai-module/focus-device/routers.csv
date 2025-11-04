@@ -1,0 +1,21 @@
+model_name,vendor,device_type
+xFi Advanced Gateway (XB8),Xfinity (Comcast),Router
+xFi Advanced Gateway (XB7),Xfinity (Comcast),Router
+xFi Gateway (XB6),Xfinity (Comcast),Router
+xFi Gateway (XB3),Xfinity (Comcast),Router
+AT&T BGW320,AT&T,Router
+AT&T BGW210,AT&T,Router
+Pace 5268AC,AT&T,Router
+NVG599,AT&T,Router
+Spectrum SAX1V1 (WiFi 6),Spectrum (Charter),Router
+Spectrum SAC2V1 (WiFi 5),Spectrum (Charter),Router
+Sagemcom F@st 5260,Spectrum (Charter),Router
+Verizon Router (CR1000A),Verizon,Router
+Fios Quantum Gateway (G1100),Verizon,Router
+MI424WR,Verizon,Router
+Nighthawk R7000,NETGEAR,Router
+Archer AX55,TP-Link,Router
+Archer AXE75,TP-Link,Router
+Eero 6+,Amazon (eero),Router
+Nest Wifi Pro,Google,Router
+Velop (Tri-Band),Linksys,Router

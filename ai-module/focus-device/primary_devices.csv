@@ -1,0 +1,9 @@
+model_name,vendor,device_type
+Windows 11 PC,Microsoft,PC
+MacBook (macOS),Apple,PC
+iPhone,Apple,Phone
+Pixel (Android),Google,Phone
+Galaxy (Android),Samsung,Phone
+PlayStation 5,Sony,Gaming Console
+Xbox Series X,Microsoft,Gaming Console
+Nintendo Switch,Nintendo,Gaming Console

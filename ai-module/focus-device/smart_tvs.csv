@@ -1,0 +1,13 @@
+model_name,vendor,device_type
+Samsung Smart TV (Tizen OS),Samsung,Smart TV
+LG Smart TV (WebOS),LG,Smart TV
+Sony Google TV,Sony,Smart TV
+TCL Google TV,TCL,Smart TV
+TCL Roku TV,Roku,Smart TV
+Hisense Roku TV,Roku,Smart TV
+Vizio SmartCast TV,Vizio,Smart TV
+Amazon Fire TV Edition,Amazon,Smart TV
+Roku Streaming Stick,Roku,Streaming Stick
+Amazon Fire TV Stick,Amazon,Streaming Stick
+Chromecast with Google TV,Google,Streaming Stick
+Apple TV 4K,Apple,Streaming Box

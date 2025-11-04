@@ -1,0 +1,11 @@
+model_name,vendor,device_type
+OfficeJet Pro series,HP,Printer
+LaserJet Pro series,HP,Printer
+Envy series,HP,Printer
+DeskJet series,HP,Printer
+EcoTank series,Epson,Printer
+WorkForce series,Epson,Printer
+Pixma series,Canon,Printer
+imageCLASS series,Canon,Printer
+MFC series,Brother,Printer
+HL series,Brother,Printer

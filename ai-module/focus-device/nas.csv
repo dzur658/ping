@@ -1,0 +1,7 @@
+model_name,vendor,device_type
+DiskStation (DSM),Synology,NAS
+TS Series (QTS),QNAP,NAS
+Lockerstor (ADM),Asustor,NAS
+TerraMaster (TOS),TerraMaster,NAS
+Plex Media Server,Plex,Media Server
+BeeStation,Synology,NAS
