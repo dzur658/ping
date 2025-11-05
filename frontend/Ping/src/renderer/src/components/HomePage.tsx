@@ -3,6 +3,14 @@ import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
     const navigate = useNavigate();
+    const handleClick = async () => {
+        const filePath = await window.electronAPI.openFileDialog();
+        if (filePath) {
+            console.log("Selected file:", filePath);
+        } else {
+            console.log("No file selected");
+        }
+    }
 
     return (
         <Box 
@@ -36,7 +44,7 @@ export default function HomePage() {
                     </Button>
                     <Button
                         variant="outlined"
-                        onClick={() => console.log("Open File")}
+                        onClick={handleClick}
                     >
                         Open File
                     </Button>

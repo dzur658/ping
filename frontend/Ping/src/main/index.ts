@@ -1,7 +1,18 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+ipcMain.handle("dialog:openFile", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openFile"],
+  });
+  if (canceled) {
+    return null;
+  } else {
+    return filePaths[0];
+  }
+})
 
 function createWindow(): void {
   // Create the browser window.
