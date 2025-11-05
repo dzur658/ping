@@ -1,6 +1,9 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
+    const navigate = useNavigate();
+
     return (
         <Box 
             sx={{
@@ -27,7 +30,7 @@ export default function HomePage() {
                 >
                     <Button
                         variant="outlined"
-                        onClick={() => console.log("New Scan")}
+                        onClick={() => navigate("/ScanOptionsPage")}
                     >
                         New Scan
                     </Button>

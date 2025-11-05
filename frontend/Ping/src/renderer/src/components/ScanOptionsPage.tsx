@@ -1,7 +1,10 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
+    const navigate = useNavigate();
+
     return (
         <Box 
             sx={{
@@ -20,7 +23,7 @@ export default function HomePage() {
                     top: "1rem",
                     left: "1rem"
                 }}
-                onClick={() => console.log("New Scan")}
+                onClick={() => navigate("/")}
             >
                 Back
             </Button>
