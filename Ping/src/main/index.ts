@@ -2,9 +2,11 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import Database from 'better-sqlite3'
 
-ipcMain.handle("dialog:openFile", async () => {
+ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
+    filters: [{name: 'SQLite Files', extensions: ['sqlite', 'db']}],
     properties: ["openFile"],
   });
   if (canceled) {
@@ -13,6 +15,36 @@ ipcMain.handle("dialog:openFile", async () => {
     return filePaths[0];
   }
 })
+
+ipcMain.handle('sqlite:getDevices', async (_, filePath: string) => {
+  const db = new Database(filePath);
+  try {
+    const rows = db.prepare(`
+      SELECT ipAddress,hostnames FROM hosts
+    `).all();
+    return rows;
+    } finally {
+    db.close();
+  }
+});
+
+ipcMain.handle('sqlite:getDeviceVulnerabilities', async (_, filePath: string, selectedDevice: string) => {
+  if (!selectedDevice) return [];
+
+  const devicedb = new Database(filePath);
+  try {
+    const devicestatement = devicedb.prepare(`
+      SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId FROM hosts 
+      JOIN services ON hosts.hostId = services.hostId 
+      JOIN vulnerabilities ON vulnerabilities.serviceId = services.serviceId 
+      WHERE hosts.ipAddress = ?
+    `)
+    const rows = devicestatement.all(selectedDevice);
+    return rows;
+  } finally {
+    devicedb.close();
+  }
+});
 
 function createWindow(): void {
   // Create the browser window.

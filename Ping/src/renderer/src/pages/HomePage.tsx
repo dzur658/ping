@@ -1,12 +1,14 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
-export default function HomePage() {
+export default function HomePage({setFilePath}: {setFilePath: (path: string) => void}) {
     const navigate = useNavigate();
+
     const handleClick = async () => {
-        const filePath = await window.electronAPI.openFileDialog();
+        const filePath = await window.electronAPI.openSQLiteFile();
         if (filePath) {
-            console.log("Selected file:", filePath);
+            setFilePath(filePath);
+            navigate("/ReportPage")
         } else {
             console.log("No file selected");
         }
@@ -21,6 +23,7 @@ export default function HomePage() {
                 alignItems: "center",
                 bgcolor: "black",
                 color: "white",
+                width: "100vw"
             }}
         >
             <Stack spacing={10} alignItems="center" 

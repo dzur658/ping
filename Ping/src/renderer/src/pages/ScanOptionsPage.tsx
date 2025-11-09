@@ -1,14 +1,12 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate } from "react-router-dom";
+import BackButton from "../components/BackButton";
 
 export default function HomePage() {
-    const navigate = useNavigate();
-
     return (
         <Box 
             sx={{
                 height: "100vh",
+                width: "100vw",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
@@ -16,17 +14,7 @@ export default function HomePage() {
                 color: "white",
             }}
         >
-            <Button
-                startIcon={<ArrowBackIcon />}
-                sx={{
-                    position: "fixed",
-                    top: "1rem",
-                    left: "1rem"
-                }}
-                onClick={() => navigate("/")}
-            >
-                Back
-            </Button>
+            <BackButton PagePath="/"/>
             <Stack spacing={10} alignItems="center" 
                 sx={{
                     height: "35vh"
