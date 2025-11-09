@@ -1,5 +1,7 @@
 interface Window {
   electronAPI: {
-    openFileDialog: () => Promise<string | null>;
+    openSQLiteFile: () => Promise<string | null>;
+    getDevices: (filePath: string) => Promise<any[]>;
+    getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<any[]>;
   };
 }
