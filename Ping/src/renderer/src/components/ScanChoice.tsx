@@ -1,0 +1,67 @@
+import {Typography,Button,IconButton,Menu,MenuItem,} from "@mui/material";
+import { MoreHoriz } from "@mui/icons-material";
+import { useState } from "react";
+
+export default function ScanChoice ({scanId, startTime, selected, onSelect}) {
+    const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
+    const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        setAnchorElement(event.currentTarget);
+    };
+
+    const handleMenuClose = () => setAnchorElement(null)
+
+    return (
+        <Button
+            variant="outlined"
+            endIcon={
+                <IconButton
+                    onClick={handleMenuOpen}
+                    sx={{
+                        color: "white",
+                        padding: 0.5,
+                        "&:hover": {
+                            backgroundColor: "transparent",
+                        }
+                    }}
+                >
+                    <MoreHoriz />
+                </IconButton>
+            }
+            sx={{
+                borderColor: "white",
+                borderWidth: "0.1rem",
+                borderRadius: "1rem",
+                margin: 0.5,
+                bgcolor: selected ? "gray" : "transparent",
+                "&:hover": {
+                    bgcolor: "darkgray"
+                },
+                textTransform: "none",
+                justifyContent: "space-between",
+                color: "white",
+                width: "90%",
+            }}
+            onClick={() => onSelect(scanId)}
+        >
+            <Typography 
+                sx={{
+                    fontSize: "small"
+                }}
+            >
+                {scanId}
+            </Typography>
+
+            <Menu
+                anchorEl={anchorElement}
+                open={Boolean(anchorElement)}
+                onClose={handleMenuClose}
+            >
+                <MenuItem onClick={() => alert(`View ${scanId}`)}>View</MenuItem>
+                <MenuItem onClick={() => alert(`Detals for ${startTime}`)}>
+                    Details
+                </MenuItem>
+            </Menu>
+        </Button>
+    );
+}

@@ -1,10 +1,16 @@
-import { Box,Typography, Paper, Table, TableBody,TableCell,TableContainer,TableHead,TableRow, Button} from "@mui/material";
+import { Box,Typography, Paper, Table, TableBody,TableCell,TableContainer,TableHead,TableRow, Button,} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import Split from "react-split"
 import BackButton from "../components/BackButton";
+import DeviceMenu from "../components/DeviceMenu";
 
-export default function ReportPage({filePath}: {filePath: string | null}) {
+interface ReportPageProps {
+  filePath: string | null;
+  selectedScan: string | null;
+}
+
+export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
     interface Device {
         ipAddress: string;
         hostnames: string | null;
@@ -15,13 +21,13 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!filePath) {
+        if (!filePath || !selectedScan) {
             navigate("/")
             return;
         }
 
         const loadDevices = async () => {
-            const deviceList: Device[] = await window.electronAPI.getDevices(filePath);
+            const deviceList: Device[] = await window.electronAPI.getDevices(filePath, selectedScan);
             setDevices(deviceList);
 
             if (deviceList.length > 0 && !selectedDevice) {
@@ -30,7 +36,7 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
         };
 
         loadDevices();
-    }, [filePath, selectedDevice, navigate])
+    }, [filePath, selectedScan, selectedDevice, navigate])
 
     useEffect(() => {
         if (!selectedDevice || !filePath) return;
@@ -42,6 +48,21 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
 
         loadDeviceData();
     }, [selectedDevice, filePath]);
+
+    const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
+        ? (() => {
+            try {
+                const parsed = JSON.parse(devices.find(device => device.ipAddress === selectedDevice)?.hostnames || "[]");
+                return Array.isArray(parsed) && parsed.length > 0 && parsed[0].trim() !== ""
+                    ? parsed[0]
+                    : selectedDevice
+            } catch {
+                return selectedDevice;
+            }
+        })()
+        : selectedDevice
+
+    const vulnerabilityCount = data.length
 
     return (
         <Box
@@ -56,31 +77,49 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
             <BackButton PagePath="/"/>
             <Split
                 gutterSize={6}
-                sizes={[20, 80]}
+                sizes={[20, 60, 20]}
                 style={{
                     height: "100vh",
                     width: "100vw",
-                    paddingTop: "20vh",
                     paddingBottom: 1,
                     display: "flex"
                 }}
             >
                 <Box
                     sx={{
-                        borderRight: "1px solid white",
+                        border: "1px solid white",
                         display: "flex",
-                        flexDirection: "column"
+                        flexDirection: "column",
+                        borderColor: "white",
+                        borderWidth: "0.1rem",
+                        borderRadius: "1rem",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        alignItems: "center",
+                        overflowX: "hidden",
+                        marginTop: "10vh",
                     }}
                 >
-                    <Typography variant="h6" 
+                    <Box
                         sx={{
-                            marginBottom: 2,
-                            textAlign: "center",
-                            fontWeight: "bold"
+                            border: "solid",
+                            borderColor: "white",
+                            borderWidth: "0.1rem",
+                            borderRadius: "01rem",
+                            marginBottom: "0.5rem",
+                            width: "100%"
                         }}
                     >
-                        Devices
-                    </Typography>
+                        <Typography variant="h6" 
+                            sx={{
+                                margin: 1,
+                                textAlign: "center",
+                                fontWeight: "bold"
+                            }}
+                        >
+                            Devices
+                        </Typography>
+                    </Box>
                     {devices.map((device) => {
                         let displayName = device.ipAddress
                         if (device.hostnames && device.hostnames !=="[]") {
@@ -91,50 +130,77 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
                                 }
                             } catch {}
                         }
+
                         return (
-                            <Button
+                            <DeviceMenu 
                                 key={device.ipAddress}
-                                variant="outlined"
-                                sx={{
-                                    borderColor: "white",
-                                    borderWidth: "0.1rem",
-                                    borderRadius: "0.5rem",
-                                    margin: 0.25,
-                                    bgcolor: selectedDevice === device.ipAddress ? "gray" : "transparent",
-                                    "&:hover": {
-                                        bgcolor: "darkgray"
-                                    },
-                                }}
-                                onClick={() => setSelectedDevice(device.ipAddress)}
-                            >
-                                {displayName}
-                            </Button>
+                                displayName={displayName}
+                                ipAddress={device.ipAddress}
+                                selected={selectedDevice === device.ipAddress}
+                                onSelect={setSelectedDevice}
+                            />
                         );
                     })}
                 </Box>
                 <Box 
                     sx={{
+                        position: "relative",
                         display: "flex",
                         flexDirection: "column",
                         bgcolor: "black",
                         color: "white",
+                        width: "100%",
+                        height: "100%"
                     }}
                 >
-                    <Typography variant="h5" 
+                    <Typography
+                        variant="h3"
                         sx={{
-                            textAlign: "center",
-                            fontWeight: "bold"
+                            position: "absolute",
+                            top: "1vh",
+                            alignSelf: "center",
+                            textAlign: "center"
                         }}
                     >
-                        Data from {filePath?.split(/[\\/]/).pop()}
+                        {filePath?.split(/[\\/]/).pop()}
                     </Typography>
+
+                    <Typography
+                        variant="h4"
+                        sx={{
+                            position: "absolute",
+                            top: "11vh",
+                            marginLeft: 5,
+                            alignSelf: "flex-start",
+                            textAlign: "center",
+                            paddingBottom: "0.2rem",
+                            borderBottom: "solid",
+                            borderWidth: "1px"
+                        }}
+                    >
+                        {selectedDeviceName}
+                    </Typography>
+
+                    <Typography
+                        variant="subtitle1"
+                        sx={{
+                            position: "absolute",
+                            top: "16.3vh",
+                            marginLeft: 6,
+                            alignSelf: "flex-start",
+                            textAlign: "center",
+                        }}
+                    >
+                        Vulnerability Count: {vulnerabilityCount}
+                    </Typography>
+
                     {!data.length ? (
                         <Box
                             sx={{
                                 flex: 1,
                                 display: "flex",
                                 justifyContent: "center",
-                                alignItems: "center"
+                                alignItems: "center",
                             }}
                         >
                             <Typography>No vulnerabiltiies found for this device.</Typography>
@@ -143,8 +209,25 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
                         const columns = Object.keys(data[0]);
                         return (
                             <TableContainer component={Paper} sx={{
+                                position: "absolute",
+                                top: "20vh",
                                 flexGrow: 1,
                                 overflowY: "auto",
+                                "&::-webkit-scrollbar": {
+                                    width: "8px",
+                                },
+                                "&::-webkit-scrollbar-track": {
+                                    background: "rgba(255,255,255,0.05)", // very subtle track
+                                    borderRadius: "4px",
+                                },
+                                "&::-webkit-scrollbar-thumb": {
+                                    backgroundColor: "rgba(255,255,255,0.3)", // hidden by default
+                                    borderRadius: "4px",
+                                    transition: "background-color 0.3s",
+                                },
+                                "&:hover::-webkit-scrollbar-thumb": {
+                                    backgroundColor: "rgba(255,255,255,0.2)", // visible on hover
+                                },
                             }}>
                                 <Table stickyHeader>
                                     <TableHead>
@@ -171,6 +254,42 @@ export default function ReportPage({filePath}: {filePath: string | null}) {
                             </TableContainer>
                         );
                     })()}
+                </Box>
+                <Box
+                    sx={{
+                        border: "1px solid white",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderColor: "white",
+                        borderWidth: "0.1rem",
+                        borderRadius: "1rem",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        alignItems: "center",
+                        overflowX: "hidden",
+                        marginTop: "20vh"
+                    }}
+                >
+                    <Box
+                        sx={{
+                            border: "solid",
+                            borderColor: "white",
+                            borderWidth: "0.1rem",
+                            borderRadius: "01rem",
+                            marginBottom: "0.5rem",
+                            width: "100%"
+                        }}
+                    >
+                        <Typography variant="h6" 
+                            sx={{
+                                margin: 1,
+                                textAlign: "center",
+                                fontWeight: "bold"
+                            }}
+                        >
+                            Ask Ping
+                        </Typography>
+                    </Box>
                 </Box>
             </Split>
         </Box>

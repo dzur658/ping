@@ -5,10 +5,11 @@ export default function HomePage({setFilePath}: {setFilePath: (path: string) => 
     const navigate = useNavigate();
 
     const handleClick = async () => {
-        const filePath = await window.electronAPI.openSQLiteFile();
+        //const filePath = await window.electronAPI.openSQLiteFile();
+        const filePath = 'C:\\Users\\josiah\\Documents\\sample_scan.db'
         if (filePath) {
             setFilePath(filePath);
-            navigate("/ReportPage")
+            navigate("/ScanSelectionPage")
         } else {
             console.log("No file selected");
         }

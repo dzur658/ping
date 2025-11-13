@@ -16,14 +16,29 @@ ipcMain.handle("dialog:openSQLiteFile", async () => {
   }
 })
 
-ipcMain.handle('sqlite:getDevices', async (_, filePath: string) => {
+ipcMain.handle('sqlite:getScans', async (_, filePath: string) => {
   const db = new Database(filePath);
   try {
     const rows = db.prepare(`
-      SELECT ipAddress,hostnames FROM hosts
+      SELECT scanId,startTime FROM Scan
     `).all();
     return rows;
-    } finally {
+  } finally {
+    db.close();
+  }
+});
+
+ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: string) => {
+  const db = new Database(filePath);
+  try {
+    const allDevicesStatement = db.prepare(`
+      SELECT ipAddress,hostnames
+      FROM hosts
+      WHERE scanId = ?
+    `)
+    const rows = allDevicesStatement.all(selectedScan);
+    return rows;
+  } finally {
     db.close();
   }
 });
@@ -34,7 +49,8 @@ ipcMain.handle('sqlite:getDeviceVulnerabilities', async (_, filePath: string, se
   const devicedb = new Database(filePath);
   try {
     const devicestatement = devicedb.prepare(`
-      SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId FROM hosts 
+      SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId
+      FROM hosts 
       JOIN services ON hosts.hostId = services.hostId 
       JOIN vulnerabilities ON vulnerabilities.serviceId = services.serviceId 
       WHERE hosts.ipAddress = ?
