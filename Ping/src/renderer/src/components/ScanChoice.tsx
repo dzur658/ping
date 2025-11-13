@@ -1,67 +1,85 @@
-import {Typography,Button,IconButton,Menu,MenuItem,} from "@mui/material";
+import {Typography,Button,IconButton,Menu,MenuItem,Box, TableRow,TableCell,} from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
 import { useState } from "react";
 
 export default function ScanChoice ({scanId, startTime, selected, onSelect}) {
     const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+
     const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
+        setMenuOpen(true);
         setAnchorElement(event.currentTarget);
     };
 
-    const handleMenuClose = () => setAnchorElement(null)
+    const handleMenuClose = () => {
+        setMenuOpen(false);
+        setAnchorElement(null)
+    }
 
     return (
-        <Button
-            variant="outlined"
-            endIcon={
+        <TableRow
+            hover
+            onClick={() => {
+                if (menuOpen) return;
+                onSelect(scanId);
+            }}
+            sx={{
+                cursor: "pointer",
+                "&:hover": {
+                    backgroundColor: "rgba(255,255,255,0.08"
+                }
+            }}
+        >
+            <TableCell 
+                sx={{
+                    color: "white"
+                }}
+            >
+                {scanId}
+            </TableCell>
+            <TableCell 
+                sx={{
+                    color: "white"
+                }}
+            >
+                {startTime || "Unknown"}
+            </TableCell>
+            <TableCell
+                align="right"
+            >
                 <IconButton
                     onClick={handleMenuOpen}
                     sx={{
-                        color: "white",
-                        padding: 0.5,
-                        "&:hover": {
-                            backgroundColor: "transparent",
-                        }
+                        color: "white"
                     }}
                 >
                     <MoreHoriz />
                 </IconButton>
-            }
-            sx={{
-                borderColor: "white",
-                borderWidth: "0.1rem",
-                borderRadius: "1rem",
-                margin: 0.5,
-                bgcolor: selected ? "gray" : "transparent",
-                "&:hover": {
-                    bgcolor: "darkgray"
-                },
-                textTransform: "none",
-                justifyContent: "space-between",
-                color: "white",
-                width: "90%",
-            }}
-            onClick={() => onSelect(scanId)}
-        >
-            <Typography 
-                sx={{
-                    fontSize: "small"
-                }}
-            >
-                {scanId}
-            </Typography>
 
-            <Menu
-                anchorEl={anchorElement}
-                open={Boolean(anchorElement)}
-                onClose={handleMenuClose}
-            >
-                <MenuItem onClick={() => alert(`View ${scanId}`)}>View</MenuItem>
-                <MenuItem onClick={() => alert(`Detals for ${startTime}`)}>
-                    Details
-                </MenuItem>
-            </Menu>
-        </Button>
+                <Menu
+                    anchorEl={anchorElement} open={Boolean(anchorElement)} onClose={handleMenuClose}
+                >
+                    <MenuItem
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            alert(`Details ${scanId}`)
+                            handleMenuClose();
+                        }}
+                    >
+                        Details
+                    </MenuItem>
+                    <MenuItem
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            alert(`Delete ${scanId}`)
+                            handleMenuClose();
+                        }}
+                    >
+                        Delete
+                    </MenuItem>
+                </Menu>
+            </TableCell>
+        </TableRow>
     );
 }

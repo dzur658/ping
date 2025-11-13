@@ -74,7 +74,7 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
                 color: "white",
             }}
         >
-            <BackButton PagePath="/"/>
+            <BackButton PagePath="/ScanSelectionPage"/>
             <Split
                 gutterSize={6}
                 sizes={[20, 60, 20]}
@@ -208,9 +208,10 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
                     ) : (() => {
                         const columns = Object.keys(data[0]);
                         return (
-                            <TableContainer component={Paper} sx={{
-                                position: "absolute",
-                                top: "20vh",
+                            <TableContainer 
+                            component={Paper} 
+                            sx={{
+                                marginTop: "20vh",
                                 flexGrow: 1,
                                 overflowY: "auto",
                                 "&::-webkit-scrollbar": {

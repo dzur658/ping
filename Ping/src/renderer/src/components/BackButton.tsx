@@ -15,13 +15,10 @@ export default function BackButton({PagePath}: BackButtonProperties) {
     return (
         <Box 
             sx={{
-                height: "100vh",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
                 bgcolor: "black",
                 color: "white",
-                position: "abosolute"
+                position: "absolute",
+                zIndex: 1000,
             }}
         >
             <Button

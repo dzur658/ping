@@ -1,4 +1,4 @@
-import { Box,Typography,} from "@mui/material";
+import { Box,Typography,Paper,TableContainer,Table,TableHead,TableBody, TableCell} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
@@ -38,12 +38,6 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
         loadScans();
     }, [filePath, navigate])
 
-    // useEffect(() => {
-    //     if (!selectedScan || !filePath) return;
-    //     setSelectedScan(selectedScan)
-    //     navigate("/ReportPage")
-    // }, [selectedScan, filePath, navigate]);
-
     return (
         <Box
             sx={{
@@ -57,53 +51,129 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
             <BackButton PagePath="/"/>
             <Box
                 sx={{
-                    border: "1px solid white",
+                    position: "relative",
                     display: "flex",
                     flexDirection: "column",
-                    borderColor: "white",
-                    borderWidth: "0.1rem",
-                    borderRadius: "1rem",
+                    bgcolor: "black",
+                    color: "white",
                     width: "100%",
-                    boxSizing: "border-box",
-                    alignItems: "center",
-                    overflowX: "hidden",
-                    marginTop: "10vh",
+                    height: "100%"
                 }}
             >
-                <Box
+                <Typography
+                    variant="h3"
                     sx={{
-                        border: "solid",
-                        borderColor: "white",
-                        borderWidth: "0.1rem",
-                        borderRadius: "01rem",
-                        marginBottom: "0.5rem",
-                        width: "100%"
+                        position: "absolute",
+                        top: "1vh",
+                        alignSelf: "center",
+                        textAlign: "center"
                     }}
                 >
-                    <Typography variant="h6" 
+                    {filePath?.split(/[\\/]/).pop()}
+                </Typography>
+                <Box
+                    sx={{
+                        border: "1px solid white",
+                        display: "flex",
+                        flexDirection: "column",
+                        borderColor: "white",
+                        borderWidth: "0.1rem",
+                        borderRadius: "1rem",
+                        width: "100%",
+                        height: "100%",
+                        boxSizing: "border-box",
+                        alignItems: "center",
+                        overflowX: "hidden",
+                        marginTop: "10vh",
+                    }}
+                >
+                    <Box
                         sx={{
-                            margin: 1,
-                            textAlign: "center",
-                            fontWeight: "bold"
+                            border: "solid",
+                            borderColor: "white",
+                            borderWidth: "0.1rem",
+                            borderRadius: "01rem",
+                            marginBottom: "0.5rem",
+                            width: "100%"
                         }}
                     >
-                        Scans
-                    </Typography>
-                </Box>
-                {scans.map((scan) => {
-                    return (
-                        <ScanChoice
-                            key={scan.scanId}
-                            scanId={scan.scanId}
-                            startTime={scan.startTime}
-                            selected={selectedScan === scan.scanId}
-                            onSelect={(scanId: string) => {
-                                setSelectedScan(scanId);
-                                navigate("/ReportPage")
+                        <Typography variant="h6" 
+                            sx={{
+                                margin: 1,
+                                textAlign: "center",
+                                fontWeight: "bold"
                             }}
-                        />
-                    );
-                })}
+                        >
+                            Scans
+                        </Typography>
+                    </Box>
+                    <TableContainer
+                        sx={{
+                            width: "100%",
+                            overflowY: "auto",
+                            "&::-webkit-scrollbar": {
+                                width: "8px",
+                            },
+                            "&::-webkit-scrollbar-track": {
+                                background: "rgba(255,255,255,0.05)", // very subtle track
+                                borderRadius: "4px",
+                            },
+                            "&::-webkit-scrollbar-thumb": {
+                                backgroundColor: "rgba(255,255,255,0.3)", // hidden by default
+                                borderRadius: "4px",
+                                transition: "background-color 0.3s",
+                            },
+                            "&:hover::-webkit-scrollbar-thumb": {
+                                backgroundColor: "rgba(255,255,255,0.2)", // visible on hover
+                            },
+                        }}
+                    >
+                        <Table>
+                            <TableHead>
+                                <TableCell
+                                    sx={{
+                                        color: "white",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                    Scan ID
+                                </TableCell>
+                                <TableCell
+                                    sx={{
+                                        color: "white",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                    Start Time
+                                </TableCell>
+                                <TableCell
+                                    sx={{
+                                        color: "white",
+                                        align: "right",
+                                        fontWeight: "bold"
+                                    }}
+                                >
+                                </TableCell>
+                            </TableHead>
+                            <TableBody>
+                                {scans.map((scan) => {
+                                    return (
+                                        <ScanChoice
+                                            key={scan.scanId}
+                                            scanId={scan.scanId}
+                                            startTime={scan.startTime}
+                                            selected={selectedScan === scan.scanId}
+                                            onSelect={(scanId: string) => {
+                                                setSelectedScan(scanId);
+                                                navigate("/ReportPage")
+                                            }}
+                                        />
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
             </Box>
         </Box>
     )
