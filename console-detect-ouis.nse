@@ -113,7 +113,8 @@ action = function(host)
   end
 
   -- JSON output option
-  local output_format = stdnse.get_script_args("console-detect-ouis.output_format")
+  -- local output_format = stdnse.get_script_args("console-detect-ouis.output_format")
+  local output_format = "json" -- Force JSON for parsing
   if output_format == "json" then
     return stdnse.format_output(true, json.generate(result))
   end

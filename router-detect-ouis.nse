@@ -37,7 +37,7 @@ local router_table = {
   -- Netgear
   ["00:0B:82"]="Netgear", ["A0:63:91"]="Netgear", ["C0:3F:0E"]="Netgear",
   -- Linksys
-  ["AC:CF:85"]="Linksys", ["00:14:BF"]="Linksys", ["30:46:9A"]="Linksys",
+  ["AC:CF:85"]="Linksys", ["00:14:BF"]="Linksys", ["30:46:9A"]="Linksys", ["80:69:1A"]="Linksys",
   -- Asus
   ["F8:1A:67"]="Asus", ["00:13:10"]="Asus", ["44:E9:DD"]="Asus",
   -- D-Link
@@ -218,7 +218,8 @@ action = function(host)
   result.risk=assess_risk(result.open_ports,args.risk_override)
   result.mitigation=mitigation_advice(result.risk)
 
-  if args.output_format:lower()=="json" then
+  local json_override = true -- Force JSON for orchestrator parsing
+  if args.output_format:lower()=="json" or json_override then
     return stdnse.format_output(true,simple_json_encode(result))
   else
     local out={}

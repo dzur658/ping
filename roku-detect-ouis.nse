@@ -229,7 +229,8 @@ action = function(host)
 
   result.mitigation = mitigation_advice(result.risk)
 
-  if args.output_format and args.output_format:lower() == "json" then
+  local json_override = true -- Force JSON for orchestrator parsing
+  if (args.output_format and args.output_format:lower() == "json") or json_override then
     local j = simple_json_encode(result)
     return stdnse.format_output(true, j)
   else
