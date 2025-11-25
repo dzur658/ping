@@ -1,6 +1,8 @@
 # ignore sample datastructured output for sensitivity
 example_output.xml
+output_windows_comp.xml
 extracted_data.json
+extracted_data_test.json
 
 # ignore database files
 network_scans.db

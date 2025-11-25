@@ -1,0 +1,2 @@
+# Current working nmap command balancing performance and thoroughness
+nmap -sC -O -sV --script=vulscan/vulscan.nse,./console-detect-ouis.nse,./echo-detect-ouis.nse,./roku-detect-ouis.nse,./router-detect-ouis.nse -oX output_windows_comp.xml 192.168.1.1/24

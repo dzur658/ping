@@ -123,16 +123,40 @@ def parse_nmap_xml(xml_file):
                 # Initialize osmatch list
                 extracted_data[ip_address]['osmatch'] = []
 
-                for osmatch in os.findall('osmatch'):
-                    # print(f"OS: {osmatch.get('name')} (Accuracy: {osmatch.get('accuracy')}%)")
+                for portused in os.findall('portused'):
+                    for osmatch in os.findall('osmatch'):
+                        print(f"OS: {osmatch.get('name')} (Accuracy: {osmatch.get('accuracy')}%)")
 
-                    # Add osmatch to extracted data
-                    match_data = {
-                        'name': osmatch.get('name'),
-                        'accuracy': osmatch.get('accuracy')
-                    }
+                        # Add osmatch to extracted data
+                        match_data = {
+                            'name': osmatch.get('name'),
+                            'accuracy': osmatch.get('accuracy')
+                        }
 
-                    extracted_data[ip_address]['osmatch'].append(match_data)
+                        extracted_data[ip_address]['osmatch'].append(match_data)
+                        for osclass in os.findall('osclass'):
+                            os_type = osclass.get('type')
+                            os_vendor = osclass.get('vendor')
+                            os_family = osclass.get('family')
+                            os_gen = osclass.get('gen')
+
+                            # Add osclass data to extracted data
+                            class_data = {
+                                'type': os_type,
+                                'vendor': os_vendor,
+                                'family': os_family,
+                                'gen': os_gen
+                            }
+
+                            extracted_data[ip_address]['osmatch'].append(class_data)
+
+                            for cpe in osclass.findall('cpe'):
+                                cpe_text = str(cpe.text)
+
+                                # Add cpe to extracted data
+                                if 'cpe' not in extracted_data[ip_address]['osmatch']:
+                                    extracted_data[ip_address]['osmatch']['cpe'] = []
+                                extracted_data[ip_address]['osmatch']['cpe'].append(cpe_text)
 
     except ET.ParseError as e:
         print(f"Error parsing XML file: {e}")
@@ -152,7 +176,7 @@ if __name__ == "__main__":
     
     result = parse_nmap_xml(xml_file)
     if result:
-        with open("extracted_data.json", "w") as f:
+        with open("extracted_data_test.json", "w") as f:
             json.dump(result, f, indent=4)
         sys.exit(0)
     else:
