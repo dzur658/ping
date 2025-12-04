@@ -1,29 +1,24 @@
-local stdnse = require "stdnse"
-local nmap = require "nmap"
-local json = require "json"
+-- console-detect-ouis.nse
+-- Detect Xbox / PlayStation consoles by MAC OUI and output JSON (ordered like router-detect-ouis)
 
 description = [[
-Detects Xbox One, Xbox Series X/S, PlayStation 4, and PlayStation 5 game consoles
-by matching their MAC address OUI prefixes. Optionally checks common ports that
-these consoles may use for network services.
-
-Provides structured output and optional JSON formatting.
-
-Script args:
-* console-detect-ouis.check_ports=true
-* console-detect-ouis.output_format=json
+Detect Xbox One, Xbox Series X/S, PlayStation 4, and PlayStation 5 consoles
+by matching their MAC address OUI prefixes. Optionally checks common console ports.
+Outputs structured JSON for orchestrator ingestion.
 ]]
 
----
--- Categories
----
-categories = {"discovery", "safe"}
+author = "Jared Volle"
+license = "Same as Nmap"
+categories = {"discovery","safe"}
 
----
+local stdnse = require "stdnse"
+local nmap = require "nmap"
+local string = require "string"
+local table = require "table"
+
 -- OUI Database
----
 local OUI_DATABASE = {
-  -- Xbox One / Xbox Series X/S (Microsoft)
+  -- Xbox One / Xbox Series X/S
   ["00:1D:D8"] = "Microsoft (Xbox)",
   ["00:22:48"] = "Microsoft (Xbox)",
   ["00:50:F2"] = "Microsoft (Xbox)",
@@ -34,7 +29,7 @@ local OUI_DATABASE = {
   ["BC:83:85"] = "Microsoft (Xbox)",
   ["C0:33:5E"] = "Microsoft (Xbox)",
 
-  -- PlayStation 4 / PlayStation 5 (Sony)
+  -- PlayStation 4 / PlayStation 5
   ["00:1F:A7"] = "Sony (PlayStation)",
   ["00:24:8D"] = "Sony (PlayStation)",
   ["04:5D:4B"] = "Sony (PlayStation)",
@@ -53,38 +48,72 @@ local OUI_DATABASE = {
   ["C8:63:F1"] = "Sony (PlayStation)"
 }
 
----
 -- Console ports
----
 local console_ports = {3074, 3075, 3076, 3478, 3479, 3480, 3544, 4500, 500, 88}
 
----
 -- Host rule
----
 hostrule = function(host)
   return host.mac_addr ~= nil
 end
 
----
 -- Normalize MAC and derive OUI
----
 local function normalize_mac(mac)
   if not mac then return "" end
-  mac = mac:upper():gsub("-", ":")
-  return mac
+  return mac:upper():gsub("-", ":")
 end
 
----
+-- JSON escape
+local function json_escape(s)
+  s = tostring(s or "")
+  s = s:gsub('\\','\\\\'):gsub('"','\\"'):gsub('\n','\\n'):gsub('\r','\\r')
+  return s
+end
+
+-- Ordered JSON encode
+local function encode_ordered(result)
+  local parts = {"{"}
+  local first = true
+  local function add_comma() if not first then table.insert(parts,",") else first=false end end
+
+  add_comma()
+  parts[#parts+1] = '"open_ports":['
+  for i,p in ipairs(result.open_ports or {}) do
+    if i>1 then parts[#parts+1] = "," end
+    parts[#parts+1] = tostring(p)
+  end
+  parts[#parts+1] = "]"
+
+  add_comma()
+  parts[#parts+1] = '"manufacturer":"'..json_escape(result.manufacturer)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"oui":"'..json_escape(result.oui)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"ip":"'..json_escape(result.ip)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"risk":"'..json_escape(result.risk)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"device_type":"'..json_escape(result.device_type)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"notes":"'..json_escape(result.notes)..'"'
+
+  add_comma()
+  parts[#parts+1] = '"mac":"'..json_escape(result.mac)..'"'
+
+  parts[#parts+1] = "}"
+  return table.concat(parts)
+end
+
 -- Action
----
 action = function(host)
   local mac_addr = normalize_mac(host.mac_addr or "")
-  local oui = mac_addr:sub(1, 8)
-
+  local oui = mac_addr:sub(1,8)
   local manufacturer = OUI_DATABASE[oui]
-  if not manufacturer then
-    return nil
-  end
+  if not manufacturer then return nil end
 
   local result = {
     device_type = "Game Console",
@@ -92,53 +121,23 @@ action = function(host)
     ip = host.ip,
     mac = mac_addr,
     oui = oui,
-    risk = "LOW",
-    notes = "Game consoles typically pose minimal network security risk but may expose UPnP or NAT traversal ports."
+    risk = "low",
+    notes = "Game consoles typically pose minimal network security risk but may expose UPnP or NAT traversal ports.",
+    open_ports = {}
   }
 
   -- Optional port checking
   local check_ports = stdnse.get_script_args("console-detect-ouis.check_ports")
   if check_ports then
-    local open_ports = {}
-
     for _, portnum in ipairs(console_ports) do
-      for _, p in ipairs(host.ports) do
+      for _, p in ipairs(host.ports or {}) do
         if p.number == portnum and p.state == "open" then
-          table.insert(open_ports, portnum)
+          table.insert(result.open_ports, portnum)
         end
       end
     end
-
-    result.open_ports = open_ports
   end
 
-  -- JSON output option
-  -- local output_format = stdnse.get_script_args("console-detect-ouis.output_format")
-  local output_format = "json" -- Force JSON for parsing
-  if output_format == "json" then
-    return stdnse.format_output(true, json.generate(result))
-  end
-
-  -- Human-readable output
-  local out = {}
-  table.insert(out, "*** GAME CONSOLE DETECTED ***")
-  table.insert(out, "IP: " .. result.ip)
-  table.insert(out, "MAC: " .. result.mac)
-  table.insert(out, "OUI: " .. result.oui)
-  table.insert(out, "Manufacturer: " .. manufacturer)
-  table.insert(out, "Assessed risk: LOW")
-
-  if result.open_ports then
-    table.insert(out, "Open console-related ports: " ..
-      (#result.open_ports > 0 and table.concat(result.open_ports, ", ") or "None"))
-  end
-
-  table.insert(out, "")
-  table.insert(out, "Mitigation advice:")
-  table.insert(out, " - Keep console firmware updated.")
-  table.insert(out, " - Disable UPnP if not needed for NAT traversal.")
-  table.insert(out, " - Use secure Wi-Fi settings (WPA2/WPA3).")
-  table.insert(out, " - Avoid connecting consoles to guest or untrusted networks.")
-
-  return stdnse.format_output(true, out)
+  -- Force JSON output
+  return stdnse.format_output(true, encode_ordered(result))
 end
