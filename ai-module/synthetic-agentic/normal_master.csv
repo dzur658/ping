@@ -1,0 +1,75 @@
+model_name,vendor,device_type,keyword_lookup
+Xbox Series X,Microsoft,Gaming Console,Microsoft Xbox
+Nintendo Switch,Nintendo,Gaming Console,Nintendo Switch
+PlayStation 5,Sony,Gaming Console,Sony PlayStation
+Plex Media Server,Plex,Media Server,Plex Plex
+Lockerstor (ADM),Asustor,NAS,Asustor Lockerstor
+TS Series (QTS),QNAP,NAS,QNAP TS
+DiskStation (DSM),Synology,NAS,Synology DiskStation
+BeeStation,Synology,NAS,Synology BeeStation
+TerraMaster (TOS),TerraMaster,NAS,TerraMaster TerraMaster
+MacBook (macOS),Apple,PC,Apple macOS
+Windows 11 PC,Microsoft,PC,Microsoft Windows
+iPhone,Apple,Phone,Apple iPhone
+Pixel (Android),Google,Phone,Google Pixel
+Galaxy (Android),Samsung,Phone,Samsung Galaxy
+MFC series,Brother,Printer,Brother MFC
+HL series,Brother,Printer,Brother HL
+Pixma series,Canon,Printer,Canon Pixma
+imageCLASS series,Canon,Printer,Canon imageCLASS
+EcoTank series,Epson,Printer,Epson EcoTank
+WorkForce series,Epson,Printer,Epson WorkForce
+OfficeJet Pro series,HP,Printer,HP OfficeJet
+LaserJet Pro series,HP,Printer,HP LaserJet
+Envy series,HP,Printer,HP Envy
+DeskJet series,HP,Printer,HP DeskJet
+AT&T BGW320,AT&T,Router,AT&T AT&T
+AT&T BGW210,AT&T,Router,AT&T AT&T
+Pace 5268AC,AT&T,Router,AT&T Pace
+NVG599,AT&T,Router,AT&T NVG599
+Eero 6+,Amazon (eero),Router,Amazon eero
+Nest Wifi Pro,Google,Router,Google Nest Wifi
+Velop (Tri-Band),Linksys,Router,Linksys Velop
+Nighthawk R7000,NETGEAR,Router,Netgear Nighthawk
+Spectrum SAX1V1 (WiFi 6),Spectrum (Charter),Router,Spectrum Spectrum
+Spectrum SAC2V1 (WiFi 5),Spectrum (Charter),Router,Spectrum Spectrum
+Sagemcom F@st 5260,Spectrum (Charter),Router,Spectrum Sagemcom
+Archer AX55,TP-Link,Router,TP-Link Archer
+Archer AXE75,TP-Link,Router,TP-Link Archer
+Verizon Router (CR1000A),Verizon,Router,Verizon Verizon
+Fios Quantum Gateway (G1100),Verizon,Router,Verizon Fios
+MI424WR,Verizon,Router,Verizon MI424WR
+xFi Advanced Gateway (XB8),Xfinity (Comcast),Router,Xfinity xFi
+xFi Advanced Gateway (XB7),Xfinity (Comcast),Router,Xfinity xFi
+xFi Gateway (XB6),Xfinity (Comcast),Router,Xfinity xFi
+xFi Gateway (XB3),Xfinity (Comcast),Router,Xfinity xFi
+Blink Outdoor,Amazon (Blink),Security Camera,Amazon Blink
+Arlo Pro,Arlo,Security Camera,Arlo Arlo
+Eufy Security Cam,Eufy,Security Camera,Eufy Eufy
+Nest Cam (Battery),Google,Security Camera,Google Nest Cam
+Video Doorbell,Ring,Security Camera,Ring
+Stick Up Cam,Ring,Security Camera,Ring
+Tapo Camera,TP-Link,Security Camera,TP-Link Tapo
+Wyze Cam,Wyze,Security Camera,Wyze Wyze
+Echo Dot,Amazon,Smart Speaker,Amazon Echo
+Echo Pop,Amazon,Smart Speaker,Amazon Echo
+Echo (4th Gen),Amazon,Smart Speaker,Amazon Echo
+Echo Show,Amazon,Smart Speaker,Amazon Echo
+HomePod mini,Apple,Smart Speaker,Apple HomePod
+Nest Mini,Google,Smart Speaker,Google Nest
+Nest Audio,Google,Smart Speaker,Google Nest
+Nest Hub,Google,Smart Speaker,Google Nest
+Sonos One,Sonos,Smart Speaker,Sonos Sonos
+Sonos Era 100,Sonos,Smart Speaker,Sonos Sonos
+Amazon Fire TV Edition,Amazon,Smart TV,Amazon Fire TV
+LG Smart TV (WebOS),LG,Smart TV,LG WebOS
+TCL Roku TV,Roku,Smart TV,Roku
+Hisense Roku TV,Roku,Smart TV,Roku
+Samsung Smart TV (Tizen OS),Samsung,Smart TV,Samsung Tizen
+Sony Google TV,Sony,Smart TV,Sony Sony
+TCL Google TV,TCL,Smart TV,TCL TCL
+Vizio SmartCast TV,Vizio,Smart TV,Vizio Vizio
+Apple TV 4K,Apple,Streaming Box,Apple TV
+Amazon Fire TV Stick,Amazon,Streaming Stick,Amazon Fire TV
+Chromecast with Google TV,Google,Streaming Stick,Google Chromecast
+Roku Streaming Stick,Roku,Streaming Stick,Roku Roku
