@@ -125,7 +125,7 @@ def parse_nmap_xml(xml_file):
 
                 for portused in os.findall('portused'):
                     for osmatch in os.findall('osmatch'):
-                        print(f"OS: {osmatch.get('name')} (Accuracy: {osmatch.get('accuracy')}%)")
+                        # print(f"OS: {osmatch.get('name')} (Accuracy: {osmatch.get('accuracy')}%)")
 
                         # Add osmatch to extracted data
                         match_data = {
@@ -145,18 +145,34 @@ def parse_nmap_xml(xml_file):
                                 'type': os_type,
                                 'vendor': os_vendor,
                                 'family': os_family,
-                                'gen': os_gen
+                                'gen': os_gen,
+                                'cpe': []
                             }
 
                             extracted_data[ip_address]['osmatch'].append(class_data)
 
                             for cpe in osclass.findall('cpe'):
                                 cpe_text = str(cpe.text)
+                                class_data['cpe'].append(cpe_text)
 
-                                # Add cpe to extracted data
-                                if 'cpe' not in extracted_data[ip_address]['osmatch']:
-                                    extracted_data[ip_address]['osmatch']['cpe'] = []
-                                extracted_data[ip_address]['osmatch']['cpe'].append(cpe_text)
+                            extracted_data[ip_address]['osmatch'].append(class_data)
+            
+            ## Get custom nmap json strings
+            hostscript = host.find('hostscript')
+            if hostscript is not None:
+                extracted_data[ip_address]['hostscripts'] = {}
+                for script in hostscript.findall('script'):
+                    script_id = script.get('id')
+                    script_output = script.get('output')
+
+                    # safety check to ensure output exists
+                    if script_output:
+                        try:
+                            # Add hostscript data to extracted data as json string
+                            extracted_data[ip_address]['hostscripts'][script_id] = json.loads(script_output.strip())
+                        except json.JSONDecodeError as e:
+                            print(f"Error decoding JSON for script {script_id}: {e}")
+                            print(f"Script output: {script_output}")
 
     except ET.ParseError as e:
         print(f"Error parsing XML file: {e}")
