@@ -1,0 +1,75 @@
+model_name,vendor,device_type
+Video Doorbell,Ring,Security Camera
+Stick Up Cam,Ring,Security Camera
+Blink Outdoor,Amazon (Blink),Security Camera
+Wyze Cam,Wyze,Security Camera
+Arlo Pro,Arlo,Security Camera
+Nest Cam (Battery),Google,Security Camera
+Eufy Security Cam,Eufy,Security Camera
+Tapo Camera,TP-Link,Security Camera
+DiskStation (DSM),Synology,NAS
+TS Series (QTS),QNAP,NAS
+Lockerstor (ADM),Asustor,NAS
+TerraMaster (TOS),TerraMaster,NAS
+Plex Media Server,Plex,Media Server
+BeeStation,Synology,NAS
+Windows 11 PC,Microsoft,PC
+MacBook (macOS),Apple,PC
+iPhone,Apple,Phone
+Pixel (Android),Google,Phone
+Galaxy (Android),Samsung,Phone
+PlayStation 5,Sony,Gaming Console
+Xbox Series X,Microsoft,Gaming Console
+Nintendo Switch,Nintendo,Gaming Console
+OfficeJet Pro series,HP,Printer
+LaserJet Pro series,HP,Printer
+Envy series,HP,Printer
+DeskJet series,HP,Printer
+EcoTank series,Epson,Printer
+WorkForce series,Epson,Printer
+Pixma series,Canon,Printer
+imageCLASS series,Canon,Printer
+MFC series,Brother,Printer
+HL series,Brother,Printer
+xFi Advanced Gateway (XB8),Xfinity (Comcast),Router
+xFi Advanced Gateway (XB7),Xfinity (Comcast),Router
+xFi Gateway (XB6),Xfinity (Comcast),Router
+xFi Gateway (XB3),Xfinity (Comcast),Router
+AT&T BGW320,AT&T,Router
+AT&T BGW210,AT&T,Router
+Pace 5268AC,AT&T,Router
+NVG599,AT&T,Router
+Spectrum SAX1V1 (WiFi 6),Spectrum (Charter),Router
+Spectrum SAC2V1 (WiFi 5),Spectrum (Charter),Router
+Sagemcom F@st 5260,Spectrum (Charter),Router
+Verizon Router (CR1000A),Verizon,Router
+Fios Quantum Gateway (G1100),Verizon,Router
+MI424WR,Verizon,Router
+Nighthawk R7000,NETGEAR,Router
+Archer AX55,TP-Link,Router
+Archer AXE75,TP-Link,Router
+Eero 6+,Amazon (eero),Router
+Nest Wifi Pro,Google,Router
+Velop (Tri-Band),Linksys,Router
+Echo Dot,Amazon,Smart Speaker
+Echo Pop,Amazon,Smart Speaker
+Echo (4th Gen),Amazon,Smart Speaker
+Echo Show,Amazon,Smart Speaker
+Nest Mini,Google,Smart Speaker
+Nest Audio,Google,Smart Speaker
+Nest Hub,Google,Smart Speaker
+HomePod mini,Apple,Smart Speaker
+Sonos One,Sonos,Smart Speaker
+Sonos Era 100,Sonos,Smart Speaker
+Samsung Smart TV (Tizen OS),Samsung,Smart TV
+LG Smart TV (WebOS),LG,Smart TV
+Sony Google TV,Sony,Smart TV
+TCL Google TV,TCL,Smart TV
+TCL Roku TV,Roku,Smart TV
+Hisense Roku TV,Roku,Smart TV
+Vizio SmartCast TV,Vizio,Smart TV
+Amazon Fire TV Edition,Amazon,Smart TV
+Roku Streaming Stick,Roku,Streaming Stick
+Amazon Fire TV Stick,Amazon,Streaming Stick
+Chromecast with Google TV,Google,Streaming Stick
+Apple TV 4K,Apple,Streaming Box
