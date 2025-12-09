@@ -25,6 +25,8 @@ def create_tables(conn):
         hostId INTEGER PRIMARY KEY,
         scanId INTEGER NOT NULL,
         ipAddress TEXT NOT NULL,
+        macAddress TEXT NOT NULL,
+        macVendor TEXT,
         hostnames TEXT,
         status TEXT,
         inferOs TEXT,
@@ -41,6 +43,20 @@ def create_tables(conn):
         timestamp INTEGER NOT NULL,
         FOREIGN KEY (hostId) REFERENCES hosts (hostId)
     );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS detection (
+        detectionId INTEGER PRIMARY KEY,
+        hostId INTEGER NOT NULL,
+        openPorts TEXT,
+        manufacturer TEXT,
+        oui TEXT,
+        portRisk TEXT,
+        ouiDetect TEXT,
+        mitigation TEXT,
+        FOREIGN KEY (hostId) REFERENCES hosts (hostId)
+    );        
     """)
 
     cursor.execute("""
@@ -61,7 +77,7 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS vulnerabilities (
         vulnId INTEGER PRIMARY KEY,
         serviceId INTEGER NOT NULL,
-        cveSource TEXT,
+        dbSource TEXT,
         cveId TEXT,
         description TEXT,
         FOREIGN KEY (serviceId) REFERENCES services (serviceId)

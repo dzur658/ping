@@ -11,6 +11,13 @@ import json
 
 from vulscan_extraction import extract_vuln_details
 
+CUSTOM_SCRIPTS = ['console-detect-ouis.nse', 
+                  'echo-detect-ouis.nse', 
+                  'roku-detect-ouis.nse', 
+                  'router-detect.nse', 
+                #   '[CAMERA_SCRIPT].nse',
+                  ]
+
 def parse_nmap_xml(xml_file):
     try:
         extracted_data = {}
@@ -35,12 +42,17 @@ def parse_nmap_xml(xml_file):
             ## Get host addresses
             for addr in host.findall('address'):
                 
-                if ip_address is None:
+                if addr.get('addrtype') in ['ipv4', 'ipv6'] and ip_address is None:
                     # Device will be classified by the first ip address nmap found associated with it
                     ip_address = addr.get('addr')
 
                     extracted_data[ip_address] = {}
                     extracted_data[ip_address]["ip_type"] = addr.get('addrtype')
+                
+                if addr.get('addrtype') == 'mac':
+                    # add mac address to extracted data
+                    extracted_data[ip_address]["mac_address"] = addr.get('addr')
+                    extracted_data[ip_address]["mac_vendor"] = addr.get('vendor', 'Unknown')
             
             # Skip hosts with no address found
             if ip_address is None:
@@ -115,6 +127,7 @@ def parse_nmap_xml(xml_file):
 
                         # Add vulscan data to extracted data
                         extracted_data[ip_address][port_id]['vulscan'] = vulscan_extracted
+
 
             ## Get OS detection information
             os = host.find('os')
@@ -192,7 +205,7 @@ if __name__ == "__main__":
     
     result = parse_nmap_xml(xml_file)
     if result:
-        with open("extracted_data_test.json", "w") as f:
+        with open("extracted_data_test_update.json", "w") as f:
             json.dump(result, f, indent=4)
         sys.exit(0)
     else:
