@@ -38,9 +38,13 @@ async def get_and_parse_page(url: str) -> tuple[str, str]:
     #print(f"  > Parsing: {url}", file=sys.stderr)
     try:
         async with async_playwright() as p:
+            # spoof the user agent to avoid bot detection
+            # DO NOT abuse sites! Be mindful and send requests at human speeds.
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
             # We use Chromium. You must run `playwright install chromium` first.
             browser = await p.chromium.launch()
-            page = await browser.new_page()
+            page = await browser.new_page(user_agent=user_agent)
             await page.goto(url, timeout=10000)
             
             # Get the fully rendered HTML
