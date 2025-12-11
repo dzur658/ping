@@ -136,7 +136,7 @@ async def direct_load(url: str) -> str:
     if text:
         return f"<begin_page>\n<source url={parsed_url} />\n{text}\n\n" + "\n</end_page>" + "\n"
     else:
-        return f"No content found at {parsed_url}."
+        return f"<connection_refused>No content found at {parsed_url}.</connection_refused>"
     
 
 if __name__ == "__main__":
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         print("Usage: python tool_prototype.py \"<search query>\"", file=sys.stderr)
         sys.exit(1)
         
-    query = " ".join(sys.argv[1:])
+    query = sys.argv[1]
     
     #print(f"Testing search_and_parse_web with query: '{query}'", file=sys.stderr)
     
@@ -158,5 +158,13 @@ if __name__ == "__main__":
 
         with open("results.md", "w", encoding="utf-8") as f:
             f.write(output)
+    
+    async def direct_load_test():
+        output = await direct_load(query)
+        with open("direct_results.md", "w", encoding="utf-8") as f:
+            f.write(output)
 
-    asyncio.run(test_run())
+    if "http://" not in query and "https://" not in query:
+        asyncio.run(test_run())
+    else:
+        asyncio.run(direct_load_test())
