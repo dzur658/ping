@@ -3,6 +3,7 @@ __pycache__
 # ignore large jsonl file
 discovered_cves.jsonl
 discovered_cves_backup.jsonl
+sample.jsonl
 
 # sample json
 sample.json
