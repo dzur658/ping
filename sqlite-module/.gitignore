@@ -1,12 +1,8 @@
 # ignore sample datastructured output for sensitivity
-example_output.xml
-output_windows_comp.xml
-output_windows_json_fix_alexa_oui.xml
+output_windows_all_scripts.xml
 
-
+# ignor JSON files
 extracted_data.json
-extracted_data_test.json
-extracted_data_test_update.json
 
 # ignore database files
 network_scans.db

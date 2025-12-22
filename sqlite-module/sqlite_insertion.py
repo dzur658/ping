@@ -35,7 +35,7 @@ def insert_data_from_json(conn, json_data):
         timestamp_int = int(dt_object.timestamp())
         
         cursor.execute(
-            "INSERT INTO Scan (startTime, version, nmapArgs) VALUES (?, ?, ?)",
+            "INSERT INTO scan (startTime, version, nmapArgs) VALUES (?, ?, ?)",
             (timestamp_int, nmap_info['version'], nmap_info['args'])
         )
         # Get the ID of the scan we just inserted
@@ -128,7 +128,7 @@ def insert_data_from_json(conn, json_data):
                                 
         # All data has been inserted, so we "commit" the changes
         conn.commit()
-        print(f"Successfully inserted all data for Scan ID: {scan_id}")
+        print(f"Successfully inserted all data for scan ID: {scan_id}")
 
     except json.JSONDecodeError as e:
         # If any error occurs, "roll back" all changes

@@ -12,7 +12,7 @@ def create_tables(conn):
     cursor = conn.cursor()
     
     cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Scan (
+    CREATE TABLE IF NOT EXISTS scan (
         scanId INTEGER PRIMARY KEY,
         startTime INTEGER NOT NULL,
         version TEXT,
@@ -30,7 +30,7 @@ def create_tables(conn):
         hostnames TEXT,
         status TEXT,
         inferOs TEXT,
-        FOREIGN KEY (scanId) REFERENCES Scan (scanId)
+        FOREIGN KEY (scanId) REFERENCES scan (scanId)
     );
     """)
 

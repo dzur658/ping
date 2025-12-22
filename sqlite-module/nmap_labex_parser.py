@@ -15,7 +15,7 @@ CUSTOM_SCRIPTS = ['console-detect-ouis.nse',
                   'echo-detect-ouis.nse', 
                   'roku-detect-ouis.nse', 
                   'router-detect.nse', 
-                #   '[CAMERA_SCRIPT].nse',
+                  'camera-detect-ouis.nse',
                   ]
 
 def parse_nmap_xml(xml_file):
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     
     result = parse_nmap_xml(xml_file)
     if result:
-        with open("extracted_data_test_update.json", "w") as f:
+        with open("extracted_data.json", "w") as f:
             json.dump(result, f, indent=4)
         sys.exit(0)
     else:
