@@ -1,0 +1,1 @@
+nmap -sU -sS --script=broadcast-upnp-info,broadcast-dhcp-discover,mdns-discovery,http-headers,http-title -pU:1900,5353,T:80,443 -oX identity_scan_test.xml 192.168.100.1/24
