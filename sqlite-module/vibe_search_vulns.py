@@ -89,6 +89,34 @@ def cpe_to_query(cpe: str) -> Optional[str]:
 	return query or None
 
 
+def is_os_cpe(cpe: str) -> bool:
+	"""Return True if the CPE represents an operating-system ("o") part.
+
+	Supports both CPE 2.2 (e.g., cpe:/o:vendor:product:version) and
+	CPE 2.3 (e.g., cpe:2.3:o:vendor:product:version:...).
+	"""
+
+	if not cpe or not cpe.startswith("cpe:"):
+		return False
+
+	parts = cpe.split(":")
+
+	try:
+		# CPE 2.2 style: cpe:/o:vendor:product:version
+		if len(parts) >= 3 and parts[1].startswith("/"):
+			# parts[1] is like "/a", "/o", or "/h"
+			return parts[1] == "/o"
+
+		# CPE 2.3 style: cpe:2.3:o:vendor:product:version:...
+		if len(parts) >= 3 and parts[1] == "2.3":
+			# parts[2] is the part (a/o/h)
+			return parts[2] == "o"
+	except IndexError:
+		return False
+
+	return False
+
+
 class CPEVulnerabilityScanner:
 	"""Scan an Nmap XML file for CPEs and query search_vulns for vulnerabilities."""
 
@@ -241,7 +269,12 @@ class CPEVulnerabilityScanner:
 			query_contexts: Dict[str, List[str]] = {}
 
 			# OS CPEs
+			# NOTE: Operating system-level ("o") CPEs are intentionally ignored
+			# and not used to build queries for the vulnerabilities database.
 			for cpe_text in host.get("os_cpes", []):
+				if is_os_cpe(cpe_text):
+					# Skip OS CPEs entirely for lookup
+					continue
 				query = cpe_to_query(cpe_text)
 				if not query:
 					continue
@@ -251,6 +284,11 @@ class CPEVulnerabilityScanner:
 			# Service CPEs
 			for svc in host.get("service_cpes", []):
 				cpe_text = svc.get("cpe")
+
+				# Ignore OS-level ("o") CPEs here as well so they are never
+				# passed down to the vulnerabilities database for lookup.
+				if cpe_text and is_os_cpe(cpe_text):
+					continue
 
 				# Prefer the richer Nmap service product/version string as the query,
 				# using the CPE mainly as the selector for relevance and for context.
@@ -317,6 +355,22 @@ class CPEVulnerabilityScanner:
 		return report
 
 
+def print_summary_report(results: List[Dict[str, Any]]) -> None:
+	"""Print a brief human-readable summary of the scan results.
+
+	Includes:
+	  - total number of devices scanned
+	  - each device IP and count of vulnerabilities
+	"""
+
+	total_devices = len(results)
+	print(f"Devices scanned: {total_devices}", file=sys.stderr)
+	for host in results:
+		ip = host.get("ip", "unknown")
+		vuln_count = len(host.get("vulnerabilities", []))
+		print(f"- {ip}: {vuln_count} vulnerabilities", file=sys.stderr)
+
+
 def main(argv: List[str]) -> int:
 	if len(argv) != 2:
 		print(f"Usage: {argv[0]} <nmap_xml_file>", file=sys.stderr)
@@ -337,8 +391,11 @@ def main(argv: List[str]) -> int:
 	# 	print(f"Unexpected error: {e}", file=sys.stderr)
 	# 	return 1
 
-	# JSON-only output to stdout for the demo
+	# JSON output to stdout for the demo
 	print(json.dumps(results, indent=2))
+
+	# Brief summary report to stderr
+	print_summary_report(results)
 	return 0
 
 
