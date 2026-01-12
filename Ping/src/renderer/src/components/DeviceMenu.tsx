@@ -15,18 +15,15 @@ export default function DeviceMenu ({displayName, ipAddress, selected, onSelect}
         <Button
             variant="outlined"
             endIcon={
-                <IconButton
+                <span
                     onClick={handleMenuOpen}
-                    sx={{
+                    style={{
                         color: "white",
                         padding: 0.5,
-                        "&:hover": {
-                            backgroundColor: "transparent",
-                        }
                     }}
                 >
                     <MoreHoriz />
-                </IconButton>
+                </span>
             }
             sx={{
                 borderColor: "white",

@@ -1,8 +1,16 @@
-import {IconButton,Menu,MenuItem,TableRow,TableCell,} from "@mui/material";
+import {IconButton,Menu,MenuItem,TableRow,TableCell,Box,} from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
 import { useState } from "react";
+import MarkdownRenderer from "@renderer/components/MarkdownRenderer";
 
-export default function RecommendationChoice ({interType, content, onSelect}) {
+interface RecommendationChoiceProps {
+    interType: string;
+    content: string;
+    expanded: boolean;
+    onSelect: () => void;
+}
+
+export default function RecommendationChoice ({interType, content, expanded, onSelect}: RecommendationChoiceProps) {
     const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -22,7 +30,7 @@ export default function RecommendationChoice ({interType, content, onSelect}) {
             hover
             onClick={() => {
                 if (menuOpen) return;
-                onSelect(interType);
+                onSelect();
             }}
             sx={{
                 cursor: "pointer",
@@ -43,7 +51,16 @@ export default function RecommendationChoice ({interType, content, onSelect}) {
                     color: "white"
                 }}
             >
-                {content || "no content"}
+                <Box
+                    sx={{
+                        overflow: "hidden",
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: expanded ? "none" : 2,
+                    }}
+                >
+                    <MarkdownRenderer content={content} />
+                </Box>
             </TableCell>
             <TableCell
                 align="right"

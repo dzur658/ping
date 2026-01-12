@@ -1,12 +1,9 @@
-import { Box,Typography, Paper, Table, TableBody,TableCell,TableContainer,TableHead,TableRow,} from "@mui/material";
+import { Box,Typography, Table, TableBody,TableCell,TableContainer,TableHead,TableRow,} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import Split from "react-split"
-import BackButton from "../components/BackButton";
-import DeviceMenu from "../components/DeviceMenu";
-// import React from 'react';
-// import ReactMarkdown from 'react-markdown';
-// import remarkGfm from 'remark-gfm';
+import BackButton from "@renderer/components/BackButton";
+import DeviceMenu from "@renderer/components/DeviceMenu";
 import RecommendationChoice from "@renderer/components/RecommendationChoice";
 
 interface ReportPageProps {
@@ -15,7 +12,7 @@ interface ReportPageProps {
   setSelectedRecommendation: (scanId: string | null) => void;
 }
 
-export default function ReportPage({filePath, selectedScan, setSelectedRecommendation}: ReportPageProps) {
+export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     interface Device {
         ipAddress: string;
         hostnames: string | null;
@@ -29,7 +26,8 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
     //const [data, setData] = useState<any[]>([]);
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
-    const [recommendations, setRecommendation] = useState<Recommendation[]>([]);
+    const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+    const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -50,17 +48,6 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
         loadDevices();
     }, [filePath, selectedScan, selectedDevice, navigate])
 
-    // useEffect(() => {
-    //     if (!selectedDevice || !filePath) return;
-        
-    //     const loadDeviceData = async () => {
-    //         const rows = await window.electronAPI.getDeviceRecommendations(filePath, selectedDevice);
-    //         setData(rows)
-    //     };
-
-    //     loadDeviceData();
-    // }, [selectedDevice, filePath]);
-
     useEffect(() => {
         if (!filePath) {
             navigate("/")
@@ -70,16 +57,11 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
         const loadScans = async () => {
             if (!selectedDevice || !filePath) return;
             const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePath, selectedDevice);
-            setRecommendation(recommendationList);
-
-            if (recommendationList.length <= 0) {
-                navigate("/")
-                return;
-            }
+            setRecommendations(recommendationList);
         };
 
         loadScans();
-    }, [filePath, navigate])
+    }, [filePath, selectedDevice, navigate])
 
     const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
         ? (() => {
@@ -226,7 +208,7 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                         Recommendation Count: {recommendationCount}
                     </Typography>
 
-                    {!recommendations.length ? (
+                    {recommendations.length === 0 ? (
                         <Box
                             sx={{
                                 flex: 1,
@@ -237,8 +219,7 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                         >
                             <Typography>No recommendations found for this device.</Typography>
                         </Box>
-                    ) : (() => {
-                        return (
+                    ) : (
                             <Box
                                 sx={{
                                     border: "1px solid white",
@@ -252,7 +233,7 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                                     boxSizing: "border-box",
                                     alignItems: "center",
                                     overflowX: "hidden",
-                                    marginTop: "10vh",
+                                    marginTop: "20vh",
                                 }}
                             >
                                 <Box
@@ -298,30 +279,32 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                                 >
                                     <Table>
                                         <TableHead>
-                                            <TableCell
-                                                sx={{
-                                                    color: "white",
-                                                    fontWeight: "bold"
-                                                }}
-                                            >
-                                                Recommendation Type
-                                            </TableCell>
-                                            <TableCell
-                                                sx={{
-                                                    color: "white",
-                                                    fontWeight: "bold"
-                                                }}
-                                            >
-                                                Recommendation
-                                            </TableCell>
-                                            <TableCell
-                                                sx={{
-                                                    color: "white",
-                                                    align: "right",
-                                                    fontWeight: "bold"
-                                                }}
-                                            >
-                                            </TableCell>
+                                            <TableRow>
+                                                <TableCell
+                                                    sx={{
+                                                        color: "white",
+                                                        fontWeight: "bold"
+                                                    }}
+                                                >
+                                                    Description
+                                                </TableCell>
+                                                <TableCell
+                                                    sx={{
+                                                        color: "white",
+                                                        fontWeight: "bold"
+                                                    }}
+                                                >
+                                                    Recommendation
+                                                </TableCell>
+                                                <TableCell
+                                                    sx={{
+                                                        color: "white",
+                                                        align: "right",
+                                                        fontWeight: "bold"
+                                                    }}
+                                                >
+                                                </TableCell>
+                                            </TableRow>
                                         </TableHead>
                                         <TableBody>
                                             {recommendations.map((recommendation) => {
@@ -329,11 +312,11 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                                                     <RecommendationChoice
                                                         key={recommendation.interType}
                                                         interType={recommendation.interType}
-                                                        content={recommendation.content}
-                                                        onSelect={(interType: string) => {
-                                                            setSelectedRecommendation(interType);
-                                                            navigate("/ReportPage")
-                                                        }}
+                                                        content={recommendation.content ?? ""}
+                                                        expanded={expandedRecommendation === recommendation.interType}
+                                                        onSelect={() =>setExpandedRecommendation(
+                                                            expandedRecommendation === recommendation.interType ? null : recommendation.interType)
+                                                        }
                                                     />
                                                 );
                                             })}
@@ -341,8 +324,7 @@ export default function ReportPage({filePath, selectedScan, setSelectedRecommend
                                     </Table>
                                 </TableContainer>
                             </Box>
-                        );
-                    })()}
+                    )}
                 </Box>
                 <Box
                     sx={{

@@ -1,4 +1,4 @@
-import { Box,Typography,TableContainer,Table,TableHead,TableBody, TableCell} from "@mui/material";
+import { Box,Typography,TableContainer,Table,TableHead,TableBody,TableRow,TableCell} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
@@ -130,30 +130,32 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                     >
                         <Table>
                             <TableHead>
-                                <TableCell
-                                    sx={{
-                                        color: "white",
-                                        fontWeight: "bold"
-                                    }}
-                                >
-                                    Scan ID
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        color: "white",
-                                        fontWeight: "bold"
-                                    }}
-                                >
-                                    Start Time
-                                </TableCell>
-                                <TableCell
-                                    sx={{
-                                        color: "white",
-                                        align: "right",
-                                        fontWeight: "bold"
-                                    }}
-                                >
-                                </TableCell>
+                                <TableRow>
+                                    <TableCell
+                                        sx={{
+                                            color: "white",
+                                            fontWeight: "bold"
+                                        }}
+                                    >
+                                        Scan ID
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            color: "white",
+                                            fontWeight: "bold"
+                                        }}
+                                    >
+                                        Start Time
+                                    </TableCell>
+                                    <TableCell
+                                        sx={{
+                                            color: "white",
+                                            align: "right",
+                                            fontWeight: "bold"
+                                        }}
+                                    >
+                                    </TableCell>
+                                </TableRow>
                             </TableHead>
                             <TableBody>
                                 {scans.map((scan) => {
