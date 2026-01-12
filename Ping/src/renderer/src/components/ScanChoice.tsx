@@ -1,8 +1,8 @@
-import {Typography,Button,IconButton,Menu,MenuItem,Box, TableRow,TableCell,} from "@mui/material";
+import {IconButton,Menu,MenuItem,TableRow,TableCell,} from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
 import { useState } from "react";
 
-export default function ScanChoice ({scanId, startTime, selected, onSelect}) {
+export default function ScanChoice ({scanId, startTime, onSelect}) {
     const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
     const [menuOpen, setMenuOpen] = useState(false);
 

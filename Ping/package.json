@@ -29,8 +29,10 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "better-sqlite3": "^12.4.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.5",
-    "react-split": "^2.0.14"
+    "react-split": "^2.0.14",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

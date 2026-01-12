@@ -1,4 +1,4 @@
-import { Box,Typography,Paper,TableContainer,Table,TableHead,TableBody, TableCell} from "@mui/material";
+import { Box,Typography,TableContainer,Table,TableHead,TableBody, TableCell} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import BackButton from "../components/BackButton";
@@ -16,7 +16,7 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
     }
     
     const [scans, setScans] = useState<Scan[]>([]);
-    const [selectedScan, setLocalSelectedScan] = useState<string | null>(null);
+    //const [selectedScan, setLocalSelectedScan] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -162,7 +162,7 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                                             key={scan.scanId}
                                             scanId={scan.scanId}
                                             startTime={scan.startTime}
-                                            selected={selectedScan === scan.scanId}
+                                            //selected={setLocalSelectedScan(scan.scanId)}
                                             onSelect={(scanId: string) => {
                                                 setSelectedScan(scanId);
                                                 navigate("/ReportPage")

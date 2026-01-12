@@ -1,23 +1,35 @@
-import { Box,Typography, Paper, Table, TableBody,TableCell,TableContainer,TableHead,TableRow, Button,} from "@mui/material";
+import { Box,Typography, Paper, Table, TableBody,TableCell,TableContainer,TableHead,TableRow,} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import Split from "react-split"
 import BackButton from "../components/BackButton";
 import DeviceMenu from "../components/DeviceMenu";
+// import React from 'react';
+// import ReactMarkdown from 'react-markdown';
+// import remarkGfm from 'remark-gfm';
+import RecommendationChoice from "@renderer/components/RecommendationChoice";
 
 interface ReportPageProps {
   filePath: string | null;
   selectedScan: string | null;
+  setSelectedRecommendation: (scanId: string | null) => void;
 }
 
-export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
+export default function ReportPage({filePath, selectedScan, setSelectedRecommendation}: ReportPageProps) {
     interface Device {
         ipAddress: string;
         hostnames: string | null;
     }
-    const [data, setData] = useState<any[]>([]);
+
+    interface Recommendation {
+        interType: string;
+        content: string | null;
+    }
+
+    //const [data, setData] = useState<any[]>([]);
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+    const [recommendations, setRecommendation] = useState<Recommendation[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -38,16 +50,36 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
         loadDevices();
     }, [filePath, selectedScan, selectedDevice, navigate])
 
-    useEffect(() => {
-        if (!selectedDevice || !filePath) return;
+    // useEffect(() => {
+    //     if (!selectedDevice || !filePath) return;
         
-        const loadDeviceData = async () => {
-            const rows = await window.electronAPI.getDeviceVulnerabilities(filePath, selectedDevice);
-            setData(rows)
+    //     const loadDeviceData = async () => {
+    //         const rows = await window.electronAPI.getDeviceRecommendations(filePath, selectedDevice);
+    //         setData(rows)
+    //     };
+
+    //     loadDeviceData();
+    // }, [selectedDevice, filePath]);
+
+    useEffect(() => {
+        if (!filePath) {
+            navigate("/")
+            return;
+        }
+
+        const loadScans = async () => {
+            if (!selectedDevice || !filePath) return;
+            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePath, selectedDevice);
+            setRecommendation(recommendationList);
+
+            if (recommendationList.length <= 0) {
+                navigate("/")
+                return;
+            }
         };
 
-        loadDeviceData();
-    }, [selectedDevice, filePath]);
+        loadScans();
+    }, [filePath, navigate])
 
     const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
         ? (() => {
@@ -62,7 +94,7 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
         })()
         : selectedDevice
 
-    const vulnerabilityCount = data.length
+    const recommendationCount = recommendations.length
 
     return (
         <Box
@@ -191,10 +223,10 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
                             textAlign: "center",
                         }}
                     >
-                        Vulnerability Count: {vulnerabilityCount}
+                        Recommendation Count: {recommendationCount}
                     </Typography>
 
-                    {!data.length ? (
+                    {!recommendations.length ? (
                         <Box
                             sx={{
                                 flex: 1,
@@ -203,56 +235,112 @@ export default function ReportPage({filePath,selectedScan}: ReportPageProps) {
                                 alignItems: "center",
                             }}
                         >
-                            <Typography>No vulnerabiltiies found for this device.</Typography>
+                            <Typography>No recommendations found for this device.</Typography>
                         </Box>
                     ) : (() => {
-                        const columns = Object.keys(data[0]);
                         return (
-                            <TableContainer 
-                            component={Paper} 
-                            sx={{
-                                marginTop: "20vh",
-                                flexGrow: 1,
-                                overflowY: "auto",
-                                "&::-webkit-scrollbar": {
-                                    width: "8px",
-                                },
-                                "&::-webkit-scrollbar-track": {
-                                    background: "rgba(255,255,255,0.05)", // very subtle track
-                                    borderRadius: "4px",
-                                },
-                                "&::-webkit-scrollbar-thumb": {
-                                    backgroundColor: "rgba(255,255,255,0.3)", // hidden by default
-                                    borderRadius: "4px",
-                                    transition: "background-color 0.3s",
-                                },
-                                "&:hover::-webkit-scrollbar-thumb": {
-                                    backgroundColor: "rgba(255,255,255,0.2)", // visible on hover
-                                },
-                            }}>
-                                <Table stickyHeader>
-                                    <TableHead>
-                                        <TableRow>
-                                            {columns.map((col) => (
-                                                <TableCell key={col} sx={{ fontWeight: "bold"}}>
-                                                    {col}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {data.map((row, i)=> (
-                                            <TableRow key={i}>
-                                                {columns.map((col) => (
-                                                    <TableCell key={col}>
-                                                        {String(row[col])}
-                                                    </TableCell>
-                                                ))}
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+                            <Box
+                                sx={{
+                                    border: "1px solid white",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    borderColor: "white",
+                                    borderWidth: "0.1rem",
+                                    borderRadius: "1rem",
+                                    width: "100%",
+                                    height: "100%",
+                                    boxSizing: "border-box",
+                                    alignItems: "center",
+                                    overflowX: "hidden",
+                                    marginTop: "10vh",
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        border: "solid",
+                                        borderColor: "white",
+                                        borderWidth: "0.1rem",
+                                        borderRadius: "01rem",
+                                        marginBottom: "0.5rem",
+                                        width: "100%"
+                                    }}
+                                >
+                                    <Typography variant="h6" 
+                                        sx={{
+                                            margin: 1,
+                                            textAlign: "center",
+                                            fontWeight: "bold"
+                                        }}
+                                    >
+                                        Scans
+                                    </Typography>
+                                </Box>
+                                <TableContainer
+                                    sx={{
+                                        width: "100%",
+                                        overflowY: "auto",
+                                        "&::-webkit-scrollbar": {
+                                            width: "8px",
+                                        },
+                                        "&::-webkit-scrollbar-track": {
+                                            background: "rgba(255,255,255,0.05)", // very subtle track
+                                            borderRadius: "4px",
+                                        },
+                                        "&::-webkit-scrollbar-thumb": {
+                                            backgroundColor: "rgba(255,255,255,0.3)", // hidden by default
+                                            borderRadius: "4px",
+                                            transition: "background-color 0.3s",
+                                        },
+                                        "&:hover::-webkit-scrollbar-thumb": {
+                                            backgroundColor: "rgba(255,255,255,0.2)", // visible on hover
+                                        },
+                                    }}
+                                >
+                                    <Table>
+                                        <TableHead>
+                                            <TableCell
+                                                sx={{
+                                                    color: "white",
+                                                    fontWeight: "bold"
+                                                }}
+                                            >
+                                                Recommendation Type
+                                            </TableCell>
+                                            <TableCell
+                                                sx={{
+                                                    color: "white",
+                                                    fontWeight: "bold"
+                                                }}
+                                            >
+                                                Recommendation
+                                            </TableCell>
+                                            <TableCell
+                                                sx={{
+                                                    color: "white",
+                                                    align: "right",
+                                                    fontWeight: "bold"
+                                                }}
+                                            >
+                                            </TableCell>
+                                        </TableHead>
+                                        <TableBody>
+                                            {recommendations.map((recommendation) => {
+                                                return (
+                                                    <RecommendationChoice
+                                                        key={recommendation.interType}
+                                                        interType={recommendation.interType}
+                                                        content={recommendation.content}
+                                                        onSelect={(interType: string) => {
+                                                            setSelectedRecommendation(interType);
+                                                            navigate("/ReportPage")
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
                         );
                     })()}
                 </Box>

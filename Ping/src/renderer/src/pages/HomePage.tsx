@@ -6,7 +6,7 @@ export default function HomePage({setFilePath}: {setFilePath: (path: string) => 
 
     const handleClick = async () => {
         //const filePath = await window.electronAPI.openSQLiteFile();
-        const filePath = 'C:\\Users\\josiah\\Documents\\sample_scan.db'
+        const filePath = await window.electronAPI.getDBPath();
         if (filePath) {
             setFilePath(filePath);
             navigate("/ScanSelectionPage")

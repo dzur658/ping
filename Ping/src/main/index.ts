@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
-import { join } from 'path'
+import path from 'path'
+import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
@@ -17,10 +18,11 @@ ipcMain.handle("dialog:openSQLiteFile", async () => {
 })
 
 ipcMain.handle('sqlite:getScans', async (_, filePath: string) => {
+  console.log('[SQLite] Opening database at:', filePath);
   const db = new Database(filePath);
   try {
     const rows = db.prepare(`
-      SELECT scanId,startTime FROM Scan
+      SELECT scanId,startTime FROM scan
     `).all();
     return rows;
   } finally {
@@ -43,16 +45,34 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   }
 });
 
-ipcMain.handle('sqlite:getDeviceVulnerabilities', async (_, filePath: string, selectedDevice: string) => {
+// ipcMain.handle('sqlite:getDeviceVulnerabilities', async (_, filePath: string, selectedDevice: string) => {
+//   if (!selectedDevice) return [];
+
+//   const devicedb = new Database(filePath);
+//   try {
+//     const devicestatement = devicedb.prepare(`
+//       SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId
+//       FROM hosts 
+//       JOIN services ON hosts.hostId = services.hostId 
+//       JOIN vulnerabilities ON vulnerabilities.serviceId = services.serviceId 
+//       WHERE hosts.ipAddress = ?
+//     `)
+//     const rows = devicestatement.all(selectedDevice);
+//     return rows;
+//   } finally {
+//     devicedb.close();
+//   }
+// });
+
+ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, selectedDevice: string) => {
   if (!selectedDevice) return [];
 
   const devicedb = new Database(filePath);
   try {
     const devicestatement = devicedb.prepare(`
-      SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId
+      SELECT hosts.hostId,hosts.hostnames,llm.interType,llm.content
       FROM hosts 
-      JOIN services ON hosts.hostId = services.hostId 
-      JOIN vulnerabilities ON vulnerabilities.serviceId = services.serviceId 
+      JOIN llm ON hosts.hostId = llm.hostId
       WHERE hosts.ipAddress = ?
     `)
     const rows = devicestatement.all(selectedDevice);
@@ -71,7 +91,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, '../preload/index.js'),
       sandbox: false
     }
   })
@@ -90,7 +110,7 @@ function createWindow(): void {
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 }
 
@@ -98,6 +118,27 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  const userData = app.getPath('userData');
+  const dbPath = path.join(userData, 'networkscans.db');
+
+  const seedDBPath = path.join(
+    app.getAppPath(),
+    'src',
+    'renderer',
+    'public',
+    'networkscans.db'
+  );
+
+  if (!fs.existsSync(dbPath)) {
+    if (!fs.existsSync(seedDBPath)) {
+      throw new Error(`Seed DB missing: ${seedDBPath}`);
+    }
+    fs.copyFileSync(seedDBPath, dbPath);
+    console.log('[DB] Seeded databse to:', dbPath)
+  }
+
+  ipcMain.handle('database:getPath', () => dbPath);
+
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
