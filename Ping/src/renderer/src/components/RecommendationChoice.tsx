@@ -1,6 +1,4 @@
-import {IconButton,Menu,MenuItem,TableRow,TableCell,Box,} from "@mui/material";
-import { MoreHoriz } from "@mui/icons-material";
-import { useState } from "react";
+import {TableRow,TableCell,Box,} from "@mui/material";
 import MarkdownRenderer from "@renderer/components/MarkdownRenderer";
 
 interface RecommendationChoiceProps {
@@ -10,26 +8,11 @@ interface RecommendationChoiceProps {
     onSelect: () => void;
 }
 
-export default function RecommendationChoice ({interType, content, expanded, onSelect}: RecommendationChoiceProps) {
-    const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
-    const [menuOpen, setMenuOpen] = useState(false);
-
-    const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.stopPropagation();
-        setMenuOpen(true);
-        setAnchorElement(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setMenuOpen(false);
-        setAnchorElement(null)
-    }
-
+export default function RecommendationChoice ({content, expanded, onSelect}: RecommendationChoiceProps) {
     return (
         <TableRow
             hover
             onClick={() => {
-                if (menuOpen) return;
                 onSelect();
             }}
             sx={{
@@ -39,30 +22,31 @@ export default function RecommendationChoice ({interType, content, expanded, onS
                 }
             }}
         >
-            <TableCell 
+            {/* <TableCell 
                 sx={{
                     color: "white"
                 }}
             >
                 {interType}
-            </TableCell>
+            </TableCell> */}
             <TableCell 
                 sx={{
                     color: "white"
                 }}
             >
-                <Box
+                <Box className="markdown-body"
                     sx={{
                         overflow: "hidden",
                         display: "-webkit-box",
                         WebkitBoxOrient: "vertical",
-                        WebkitLineClamp: expanded ? "none" : 2,
+                        WebkitLineClamp: expanded ? 2 : "none",
+                        backgroundColor: "transparent"
                     }}
                 >
                     <MarkdownRenderer content={content} />
                 </Box>
             </TableCell>
-            <TableCell
+            {/* <TableCell
                 align="right"
             >
                 <IconButton
@@ -96,7 +80,7 @@ export default function RecommendationChoice ({interType, content, expanded, onS
                         Delete
                     </MenuItem>
                 </Menu>
-            </TableCell>
+            </TableCell> */}
         </TableRow>
     );
 }

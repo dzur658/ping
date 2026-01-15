@@ -1,4 +1,4 @@
-import { Box,Typography, Table, TableBody,TableCell,TableContainer,TableHead,TableRow,} from "@mui/material";
+import { Box,Typography, Table, TableBody,TableContainer,} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import Split from "react-split"
@@ -9,7 +9,7 @@ import RecommendationChoice from "@renderer/components/RecommendationChoice";
 interface ReportPageProps {
   filePath: string | null;
   selectedScan: string | null;
-  setSelectedRecommendation: (scanId: string | null) => void;
+  //setSelectedRecommendation: (scanId: string | null) => void;
 }
 
 export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
@@ -253,7 +253,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                             fontWeight: "bold"
                                         }}
                                     >
-                                        Scans
+                                        Recommendations
                                     </Typography>
                                 </Box>
                                 <TableContainer
@@ -278,7 +278,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                     }}
                                 >
                                     <Table>
-                                        <TableHead>
+                                        {/* <TableHead>
                                             <TableRow>
                                                 <TableCell
                                                     sx={{
@@ -305,7 +305,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                                 >
                                                 </TableCell>
                                             </TableRow>
-                                        </TableHead>
+                                        </TableHead> */}
                                         <TableBody>
                                             {recommendations.map((recommendation) => {
                                                 return (
