@@ -64,7 +64,7 @@ async def search(query: str) -> str:
 tools = [search]
 
 # make the simple react agent
-agent = create_agent(llm, tools=tools, system_prompt=SYSTEM_PROMPT, max_iterations=3)
+agent = create_agent(llm, tools=tools, system_prompt=SYSTEM_PROMPT)
 
 # make prompts for each device
 dynamic_prompt = ChatPromptTemplate.from_messages(
