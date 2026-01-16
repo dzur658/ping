@@ -7,7 +7,7 @@ import sys
 import search_vulns
 
 # CONFIGURATION
-XML_FILE = "category_test.xml"
+XML_FILE = "./samples/category_test_cheesy.xml"
 
 class VulnerabilityScanner:
     def __init__(self):
