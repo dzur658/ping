@@ -11,7 +11,7 @@ import sqlite3
 # hard code file names for simplicity (also not really necessary to change)
 # NOTE: in python you can drop relative or absolute paths into these strings, and
 # everything will still function properly.
-XML_FILE = "samples/output_windows_all_scripts.xml"
+XML_FILE = "nmap_output.xml"
 JSON_FILE = "extracted_data.json"
 DB_FILE = "network_scans.db"
 
