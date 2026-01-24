@@ -6,5 +6,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getScans: (filePath: string) => ipcRenderer.invoke("sqlite:getScans", filePath),
   getDevices: (filePath: string, selectedScan: string) => ipcRenderer.invoke("sqlite:getDevices", filePath, selectedScan),
   getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceVulnerabilities", filePath, selectedDevice),
-  getDeviceRecommendations: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, selectedDevice)
+  getDeviceRecommendations: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, selectedDevice),
+  scanLocalDevice: () => ipcRenderer.invoke("nmap:scanLocalDevice"),
+  scanLocalNetwork: () => ipcRenderer.invoke("nmap:scanLocalNetwork"),
+  runScan: (args: string[]) => ipcRenderer.invoke("nmap:runScan", args)
 })

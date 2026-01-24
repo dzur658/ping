@@ -4,6 +4,9 @@ import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
+import {execFile} from "child_process"
+import os from "os"
+import { randomUUID } from "crypto";
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -82,6 +85,54 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, se
   }
 });
 
+function createTempNmapXmlPath() {
+  const filename = `nmap-${randomUUID()}.xml`;
+  return path.join(os.tmpdir(), filename)
+}
+
+ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
+  return new Promise<string>((resolve, reject) => {
+    const xmlPath = createTempNmapXmlPath();
+    const nmapArgs = [
+      ...args,
+      "-oX",
+      xmlPath
+    ]
+
+    execFile(
+      "nmap",
+      nmapArgs,
+      {maxBuffer: 10 * 1024 * 1024},
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(stderr || error.message);
+          return;
+        }
+        resolve(xmlPath);
+      }
+    );
+  });
+});
+
+ipcMain.handle("nmap:scanLocalDevice", async () => {
+  const ip = getLocalIPv4();
+
+  return {
+    target: ip,
+    args: ["-sV", ip]
+  }
+})
+
+ipcMain.handle("nmap:scanLocalNetwork", async () => {
+  const ip = getLocalIPv4();
+  const subnet = getSubnet(ip);
+
+  return {
+    target: subnet,
+    args: ["-sn", subnet]
+  }
+})
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -112,6 +163,24 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+}
+
+function getLocalIPv4() {
+  const networkInterfaces = os.networkInterfaces();
+
+  for (const name of Object.keys(networkInterfaces)) {
+    for (const networkInterface of networkInterfaces[name] || []) {
+      if (networkInterface.family === "IPv4" && !networkInterface.internal) {
+        return networkInterface.address;
+      }
+    }
+  }
+  throw new Error("No network interfaces found");
+}
+
+function getSubnet(ip: string) {
+  const parts = ip.split(".");
+  return `${parts[0]}.${parts[1]}.${parts[2]}.0/24`;
 }
 
 // This method will be called when Electron has finished

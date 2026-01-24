@@ -30,13 +30,25 @@ export default function HomePage() {
                 >
                     <Button
                         variant="outlined"
-                        onClick={() => console.log("New Scan")}
+                        onClick={async () => {
+                            const scan = await window.electronAPI.scanLocalNetwork();
+                            console.log("Network scan:", scan);
+
+                            const xmlPath = await window.electronAPI.runScan(scan.args)
+                            console.log("Nmap XML written to:", xmlPath);
+                        }}
                     >
                         My whole network
                     </Button>
                     <Button
                         variant="outlined"
-                        onClick={() => console.log("Open File")}
+                        onClick={async () => {
+                            const scan = await window.electronAPI.scanLocalDevice();
+                            console.log("Device scan:", scan)
+
+                            const xmlPath = await window.electronAPI.runScan(scan.args)
+                            console.log("Nmap XML written to:", xmlPath);
+                        }}
                     >
                         Just this device
                     </Button>
