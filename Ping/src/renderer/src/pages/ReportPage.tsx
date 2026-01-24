@@ -434,7 +434,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                             ))}
 
                             {chatLoading && (
-                            <Typography sx={{ color: "#666" }}>
+                            <Typography sx={{ color: "#5f5f5f" }}>
                                 Ping is thinking…
                             </Typography>
                             )}
