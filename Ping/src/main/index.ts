@@ -90,6 +90,16 @@ function createTempNmapXmlPath() {
   return path.join(os.tmpdir(), filename)
 }
 
+function getNmapPath() {
+  const platform = os.platform();
+
+  if (platform === "win32") {
+    return "C:\\Program Files (x86)\\Nmap\\nmap.exe";
+  } else {
+    return "nmap";
+  }
+}
+
 ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
   return new Promise<string>((resolve, reject) => {
     const xmlPath = createTempNmapXmlPath();
@@ -97,10 +107,12 @@ ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
       ...args,
       "-oX",
       xmlPath
-    ]
+    ];
+
+    const nmapPath = getNmapPath();
 
     execFile(
-      "nmap",
+      nmapPath,
       nmapArgs,
       {maxBuffer: 10 * 1024 * 1024},
       (error, stdout, stderr) => {
