@@ -7,6 +7,7 @@ import sqlite_insertion
 # standard library imports
 import json
 import sqlite3
+import argparse
 
 # hard code file names for simplicity (also not really necessary to change)
 # NOTE: in python you can drop relative or absolute paths into these strings, and
@@ -14,6 +15,25 @@ import sqlite3
 XML_FILE = "nmap_output.xml"
 JSON_FILE = "extracted_data.json"
 DB_FILE = "network_scans.db"
+
+# allow overriding defaults via CLI args
+parser = argparse.ArgumentParser(
+    description="Parse Nmap XML and insert results into a SQLite database."
+)
+parser.add_argument(
+    "-x", "--xml-file", default=XML_FILE, help="Path to the Nmap XML input file."
+)
+parser.add_argument(
+    "-j", "--json-file", default=JSON_FILE, help="Path to the JSON output file."
+)
+parser.add_argument(
+    "-d", "--db-file", default=DB_FILE, help="Path to the SQLite database file."
+)
+args = parser.parse_args()
+
+XML_FILE = args.xml_file
+JSON_FILE = args.json_file
+DB_FILE = args.db_file
 
 # first extract xml
 extracted_data = nmap_labex_parser.parse_nmap_xml(XML_FILE)
