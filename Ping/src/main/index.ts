@@ -7,6 +7,48 @@ import Database from 'better-sqlite3'
 import {execFile} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
+import { downloadFileToCacheDir } from "@huggingface/hub";
+
+let getLlama: typeof import("node-llama-cpp").getLlama;
+let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
+
+async function loadLLMImports() {
+  const llamaCpp = await import("node-llama-cpp");
+  getLlama = llamaCpp.getLlama;
+  LlamaChatSession = llamaCpp.LlamaChatSession;
+}
+
+let session: any;
+
+async function initLlamaModel() {
+  const modelPath = await ensureQwenDownloaded();
+
+  const llama = await getLlama();
+
+  // load the model from disk
+  const model = await llama.loadModel({ modelPath });
+
+  // create a context (session state for generation)
+  const context = await model.createContext();
+
+  return context;
+}
+
+async function initAI() {
+  const context = await initLlamaModel();
+
+  session = new LlamaChatSession({
+    contextSequence: context.getSequence()
+  });
+}
+
+ipcMain.handle("llama:askPing", async (_event, question: string) => {
+  if (!session) throw new Error("AI not ready");
+
+  const reply = await session.prompt(question);
+  
+  return reply;
+});
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -84,6 +126,26 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, se
     devicedb.close();
   }
 });
+
+async function ensureQwenDownloaded() {
+  const modelsDir = path.join(app.getPath("userData"), "models");
+  const modelDir = path.join(modelsDir, "Qwen3-1.7B-f16.gguf");
+
+  if (fs.existsSync(path.join(modelDir, "Qwen3-1.7B-f16.gguf"))) {
+    console.log("Qwen already downloaded");
+    return modelDir;
+  }
+
+  console.log("Downloading Qwen…");
+
+  const downloadedDir = await downloadFileToCacheDir({
+    repo: "ggml-org/Qwen3-1.7B-GGUF",
+    path: "Qwen3-1.7B-f16.gguf"
+  });
+
+  console.log("Downloaded to:", downloadedDir);
+  return downloadedDir
+}
 
 function createTempNmapXmlPath() {
   const filename = `nmap-${randomUUID()}.xml`;
@@ -198,7 +260,7 @@ function getSubnet(ip: string) {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then((async () => {
   const userData = app.getPath('userData');
   const dbPath = path.join(userData, 'networkscans.db');
 
@@ -232,12 +294,20 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  // await ensureQwenDownloaded().catch(err =>
+  //   console.error("Model download failed:", err)
+  // );
+
+  await loadLLMImports();
+  await initLlamaModel();
+  await initAI();
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-})
+}))
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

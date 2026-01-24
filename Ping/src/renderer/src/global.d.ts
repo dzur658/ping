@@ -11,7 +11,7 @@ interface Window {
     getDevices: (filePath: string, selectedScan: string) => Promise<any[]>;
     getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<any[]>;
     getDeviceRecommendations: (filePath: string, selectedDevice: string) => Promise<any[]>;
-
+    askPing: (question: string) => Promise<string>;
     scanLocalDevice: () => Promise<NmapScanRequest>;
     scanLocalNetwork: () => Promise<NmapScanRequest>;
     runScan: (args: string[]) => Promise<void>;

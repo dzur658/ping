@@ -13,6 +13,46 @@ interface ReportPageProps {
 }
 
 export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
+    const [chatMessages, setChatMessages] = useState<
+    { role: "user" | "assistant"; content: string }[]
+    >([]);
+
+    const [chatInput, setChatInput] = useState("");
+    const [chatLoading, setChatLoading] = useState(false);
+
+    async function sendAskPing() {
+        if (!chatInput.trim() || chatLoading) return;
+
+        const userMessage = chatInput;
+
+        setChatMessages(prev => [
+            ...prev,
+            { role: "user", content: userMessage }
+        ]);
+
+        setChatInput("");
+        setChatLoading(true);
+
+        try {
+            const reply = await window.electronAPI.askPing(userMessage);
+
+            setChatMessages(prev => [
+            ...prev,
+            { role: "assistant", content: reply }
+            ]);
+        } catch (err) {
+            setChatMessages(prev => [
+            ...prev,
+            {
+                role: "assistant",
+                content: "Ping ran into an error."
+            }
+            ]);
+        } finally {
+            setChatLoading(false);
+        }
+    }
+
     interface Device {
         ipAddress: string;
         hostnames: string | null;
@@ -341,7 +381,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         marginTop: "20vh"
                     }}
                 >
-                    <Box
+                    {/* <Box
                         sx={{
                             border: "solid",
                             borderColor: "white",
@@ -360,7 +400,64 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         >
                             Ask Ping
                         </Typography>
-                    </Box>
+                    </Box> */}
+                    <Box
+                        sx={{
+                            flex: 1,
+                            width: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            padding: 1
+                        }}
+                        >
+                        {/* Chat history */}
+                        <Box
+                            sx={{
+                            flex: 1,
+                            overflowY: "auto",
+                            mb: 1,
+                            pr: 1
+                            }}
+                        >
+                            {chatMessages.map((msg, idx) => (
+                            <Typography
+                                key={idx}
+                                sx={{
+                                color: msg.role === "assistant" ? "#6cf" : "white",
+                                mb: 1,
+                                whiteSpace: "pre-wrap"
+                                }}
+                            >
+                                <strong>{msg.role === "assistant" ? "Ping" : "You"}:</strong>{" "}
+                                {msg.content}
+                            </Typography>
+                            ))}
+
+                            {chatLoading && (
+                            <Typography sx={{ color: "#666" }}>
+                                Ping is thinking…
+                            </Typography>
+                            )}
+                        </Box>
+
+                        {/* Input */}
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                            <input
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && sendAskPing()}
+                            style={{
+                                flex: 1,
+                                background: "black",
+                                color: "white",
+                                border: "1px solid white",
+                                borderRadius: "6px",
+                                padding: "6px"
+                            }}
+                            placeholder="Ask Ping about this device…"
+                            />
+                        </Box>
+                        </Box>
                 </Box>
             </Split>
         </Box>
