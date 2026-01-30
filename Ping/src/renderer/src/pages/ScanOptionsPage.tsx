@@ -36,6 +36,9 @@ export default function HomePage() {
 
                             const xmlPath = await window.electronAPI.runScan(scan.args)
                             console.log("Nmap XML written to:", xmlPath);
+
+                            const pythonOut = await window.electronAPI.processScan(xmlPath)
+                            console.log("python out:", pythonOut)
                         }}
                     >
                         My whole network
@@ -48,6 +51,9 @@ export default function HomePage() {
 
                             const xmlPath = await window.electronAPI.runScan(scan.args)
                             console.log("Nmap XML written to:", xmlPath);
+
+                            const pythonOut = await window.electronAPI.processScan(xmlPath)
+                            console.log("python out:", pythonOut)
                         }}
                     >
                         Just this device

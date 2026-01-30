@@ -152,6 +152,11 @@ function createTempNmapXmlPath() {
   return path.join(os.tmpdir(), filename)
 }
 
+function createTempNmapJsonPath() {
+  const filename = `nmap-${randomUUID()}.json`;
+  return path.join(os.tmpdir(), filename)
+}
+
 function getNmapPath() {
   const platform = os.platform();
 
@@ -165,11 +170,35 @@ function getNmapPath() {
 ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
   return new Promise<string>((resolve, reject) => {
     const xmlPath = createTempNmapXmlPath();
+    const scriptsDirectory = path.join(
+      app.getAppPath(),
+      'resources',
+      'python',
+      'scripts'
+    )
+    const nseFiles = [
+      'console-detect-ouis.nse',
+      'echo-detect-ouis.nse',
+      'roku-detect-ouis.nse',
+      'router-detect-ouis.nse',
+      'camera-detect-ouis.nse'
+    ]
+    const scriptPaths = nseFiles
+    .map(file => path.join(scriptsDirectory, file))
+    .join(',');
+
     const nmapArgs = [
-      ...args,
+      "--script",
+      scriptPaths,
+      "-sC",
+      "-O",
+      "-sV", 
       "-oX",
-      xmlPath
+      xmlPath,
+      ...args
     ];
+
+    console.log("nmap command: ", nmapArgs)
 
     const nmapPath = getNmapPath();
 
@@ -177,7 +206,7 @@ ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
       nmapPath,
       nmapArgs,
       {maxBuffer: 10 * 1024 * 1024},
-      (error, stdout, stderr) => {
+      (error, stderr) => {
         if (error) {
           reject(stderr || error.message);
           return;
@@ -193,7 +222,7 @@ ipcMain.handle("nmap:scanLocalDevice", async () => {
 
   return {
     target: ip,
-    args: ["-sV", ip]
+    args: [ip]
   }
 })
 
@@ -203,9 +232,47 @@ ipcMain.handle("nmap:scanLocalNetwork", async () => {
 
   return {
     target: subnet,
-    args: ["-sn", subnet]
+    args: [subnet]
   }
 })
+
+ipcMain.handle("python:processScan", async (_, xmlPath: string) => {
+  return new Promise<string>((resolve, reject) => {
+    const pythonParser = path.join(
+      app.getAppPath(),
+      'resources',
+      'python',
+      'orchestrator.exe'
+    );
+    const userData = app.getPath('userData');
+    const dbPath = path.join(userData, 'networkscans.db');
+
+    const jsonPath = createTempNmapJsonPath();
+    const pythonArgs = [
+      "--xml-file",
+      xmlPath,
+      "--json-file",
+      jsonPath,
+      "--db-file",
+      dbPath
+    ];
+
+    console.log("Args:", pythonArgs)
+
+    execFile(
+      pythonParser,
+      pythonArgs,
+      {maxBuffer: 10 * 1024 * 1024},
+      (error, stderr) => {
+        if (error) {
+          reject(stderr || error.message);
+          return;
+        }
+        resolve("itworked");
+      }
+    );
+  });
+});
 
 function createWindow(): void {
   // Create the browser window.

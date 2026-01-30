@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   scanLocalDevice: () => ipcRenderer.invoke("nmap:scanLocalDevice"),
   scanLocalNetwork: () => ipcRenderer.invoke("nmap:scanLocalNetwork"),
   runScan: (args: string[]) => ipcRenderer.invoke("nmap:runScan", args),
+  processScan: (xmlPath: string) => ipcRenderer.invoke("python:processScan", xmlPath),
   askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question)
 })

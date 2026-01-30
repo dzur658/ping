@@ -14,6 +14,7 @@ interface Window {
     askPing: (question: string) => Promise<string>;
     scanLocalDevice: () => Promise<NmapScanRequest>;
     scanLocalNetwork: () => Promise<NmapScanRequest>;
-    runScan: (args: string[]) => Promise<void>;
+    runScan: (args: string[]) => Promise<string>;
+    processScan: (args: string) => Promise<string>;
   };
 }
