@@ -11,3 +11,7 @@ sample_xbox_direct_load_chain.json
 
 # samples directory
 samples/
+
+# ignore anything with safetensors or gguf extension
+*.safetensors
+*.gguf

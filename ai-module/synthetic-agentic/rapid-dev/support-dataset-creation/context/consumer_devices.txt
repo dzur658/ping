@@ -1,0 +1,1069 @@
+iPhone 6
+iPhone 6 Plus
+iPhone 6s
+iPhone 6s Plus
+iPhone SE (1st gen)
+iPhone 7
+iPhone 7 Plus
+iPhone 8
+iPhone 8 Plus
+iPhone X
+iPhone XR
+iPhone XS
+iPhone XS Max
+iPhone 11
+iPhone 11 Pro
+iPhone 11 Pro Max
+iPhone SE (2020)
+iPhone 12 Mini
+iPhone 12
+iPhone 12 Pro
+iPhone 12 Pro Max
+iPhone 13 Mini
+iPhone 13
+iPhone 13 Pro
+iPhone 13 Pro Max
+iPhone SE (2022)
+iPhone 14
+iPhone 14 Plus
+iPhone 14 Pro
+iPhone 14 Pro Max
+iPhone 15
+iPhone 15 Plus
+iPhone 15 Pro
+iPhone 15 Pro Max
+iPhone 16
+iPhone 16 Plus
+iPhone 16 Pro
+iPhone 16 Pro Max
+iPhone 16e
+iPhone 17
+iPhone 17 Pro
+iPhone Air
+Samsung Galaxy S6
+Samsung Galaxy S7
+Samsung Galaxy S7 Edge
+Samsung Galaxy S8
+Samsung Galaxy S8+
+Samsung Galaxy S9
+Samsung Galaxy S9+
+Samsung Galaxy S10e
+Samsung Galaxy S10
+Samsung Galaxy S10+
+Samsung Galaxy S20
+Samsung Galaxy S20+
+Samsung Galaxy S20 Ultra
+Samsung Galaxy S21
+Samsung Galaxy S21+
+Samsung Galaxy S21 Ultra
+Samsung Galaxy S22
+Samsung Galaxy S22+
+Samsung Galaxy S22 Ultra
+Samsung Galaxy S23
+Samsung Galaxy S23+
+Samsung Galaxy S23 Ultra
+Samsung Galaxy S24
+Samsung Galaxy S24+
+Samsung Galaxy S24 Ultra
+Samsung Galaxy S25
+Samsung Galaxy S25+
+Samsung Galaxy S25 Ultra
+Samsung Galaxy Z Fold 3
+Samsung Galaxy Z Fold 4
+Samsung Galaxy Z Fold 5
+Samsung Galaxy Z Fold 6
+Samsung Galaxy Z Fold 7
+Samsung Galaxy Z Flip 3
+Samsung Galaxy Z Flip 4
+Samsung Galaxy Z Flip 5
+Samsung Galaxy Z Flip 6
+Samsung Galaxy Z Flip 7
+Samsung Galaxy Note 5
+Samsung Galaxy Note 8
+Samsung Galaxy Note 9
+Samsung Galaxy Note 10
+Samsung Galaxy Note 10+
+Samsung Galaxy Note 20
+Samsung Galaxy Note 20 Ultra
+Google Pixel
+Google Pixel XL
+Google Pixel 2
+Google Pixel 2 XL
+Google Pixel 3
+Google Pixel 3 XL
+Google Pixel 3a
+Google Pixel 3a XL
+Google Pixel 4
+Google Pixel 4 XL
+Google Pixel 4a
+Google Pixel 4a 5G
+Google Pixel 5
+Google Pixel 5a
+Google Pixel 6
+Google Pixel 6 Pro
+Google Pixel 6a
+Google Pixel 7
+Google Pixel 7 Pro
+Google Pixel 7a
+Google Pixel 8
+Google Pixel 8 Pro
+Google Pixel 8a
+Google Pixel 9
+Google Pixel 9 Pro
+Google Pixel 9 Pro XL
+Google Pixel 9 Pro Fold
+Google Pixel 9a
+Google Pixel 10
+Google Pixel 10 Pro
+Google Pixel 10 Pro XL
+Google Pixel 10 Pro Fold
+OnePlus 3
+OnePlus 3T
+OnePlus 5
+OnePlus 5T
+OnePlus 6
+OnePlus 6T
+OnePlus 7
+OnePlus 7 Pro
+OnePlus 7T
+OnePlus 7T Pro
+OnePlus 8
+OnePlus 8 Pro
+OnePlus 8T
+OnePlus 9
+OnePlus 9 Pro
+OnePlus 9R
+OnePlus 10 Pro
+OnePlus 10T
+OnePlus 11
+OnePlus 12
+OnePlus 12R
+OnePlus 13
+Xiaomi Mi 8
+Xiaomi Mi 9
+Xiaomi Mi 10
+Xiaomi Mi 10 Pro
+Xiaomi Mi 11
+Xiaomi Mi 11 Ultra
+Xiaomi 12
+Xiaomi 12 Pro
+Xiaomi 13
+Xiaomi 13 Pro
+Xiaomi 14
+Xiaomi 14 Pro
+Xiaomi 14 Ultra
+Xiaomi Redmi Note 7
+Xiaomi Redmi Note 8
+Xiaomi Redmi Note 9
+Xiaomi Redmi Note 10
+Xiaomi Redmi Note 11
+Xiaomi Redmi Note 12
+Xiaomi Redmi Note 13
+Huawei P20
+Huawei P20 Pro
+Huawei P30
+Huawei P30 Pro
+Huawei P40
+Huawei P40 Pro
+Huawei Mate 20
+Huawei Mate 20 Pro
+Huawei Mate 30
+Huawei Mate 30 Pro
+Huawei Mate 40
+Huawei Mate 40 Pro
+Oppo Find X2
+Oppo Find X3 Pro
+Oppo Find X5 Pro
+Oppo Reno 4
+Oppo Reno 5
+Oppo Reno 6
+Vivo X50
+Vivo X60
+Vivo X70
+Vivo X80
+Sony Xperia XZ2
+Sony Xperia XZ3
+Sony Xperia 1
+Sony Xperia 5
+Motorola Moto G5
+Motorola Moto G6
+Motorola Moto G7
+Motorola Moto G8
+Motorola Moto G9
+Motorola Moto G10
+Motorola Moto G Power
+Motorola Moto G Stylus
+Nokia 6.1
+Nokia 7.2
+Nokia 8.1
+Asus ROG Phone
+Asus Zenfone 6
+Asus Zenfone 8
+LG G6
+LG G7 ThinQ
+LG G8 ThinQ
+LG V30
+LG V40 ThinQ
+LG V50 ThinQ
+Realme 7
+Realme 8
+Realme 9
+Realme 10
+Poco F1
+Poco F2 Pro
+Poco X3
+Poco X4 Pro
+Honor 8X
+Honor 9X
+Honor 10
+Honor 20
+Honor 50
+Apple iPad (5th gen)
+Apple iPad (6th gen)
+Apple iPad (7th gen)
+Apple iPad (8th gen)
+Apple iPad (9th gen)
+Apple iPad (10th gen)
+iPad Air (3rd gen)
+iPad Air (4th gen)
+iPad Air (5th gen)
+iPad Air (6th gen)
+iPad mini (5th gen)
+iPad mini (6th gen)
+iPad Pro 11 (2018)
+iPad Pro 12.9 (2018)
+iPad Pro 11 (2020)
+iPad Pro 12.9 (2020)
+iPad Pro 11 (2021)
+iPad Pro 12.9 (2021)
+iPad Pro 11 (2022)
+iPad Pro 12.9 (2022)
+iPad Pro 11 (M4, 2024)
+iPad Pro 13 (M4, 2024)
+iPad Air 11 (M2, 2024)
+iPad Air 13 (M2, 2024)
+iPad mini (7th gen)
+Samsung Galaxy Tab S4
+Samsung Galaxy Tab S5e
+Samsung Galaxy Tab S6
+Samsung Galaxy Tab S6 Lite
+Samsung Galaxy Tab S7
+Samsung Galaxy Tab S7+
+Samsung Galaxy Tab S8
+Samsung Galaxy Tab S8+
+Samsung Galaxy Tab S8 Ultra
+Samsung Galaxy Tab A 10.1 (2019)
+Samsung Galaxy Tab A7 (2020)
+Samsung Galaxy Tab A8 (2021)
+Amazon Fire HD 8 (2018)
+Amazon Fire HD 8 (2020)
+Amazon Fire HD 8 (2022)
+Amazon Fire HD 10 (2019)
+Amazon Fire HD 10 (2021)
+Amazon Fire HD 10 (2023)
+Amazon Fire 7 (2019)
+Amazon Fire 7 (2022)
+Microsoft Surface Pro 6
+Microsoft Surface Pro 7
+Microsoft Surface Pro 7+
+Microsoft Surface Pro 8
+Microsoft Surface Pro 9
+Microsoft Surface Go
+Microsoft Surface Go 2
+Microsoft Surface Go 3
+Microsoft Surface Laptop 3
+Microsoft Surface Laptop 4
+Microsoft Surface Laptop 5
+Microsoft Surface Book 2
+Microsoft Surface Book 3
+Microsoft Surface Laptop Studio
+Apple MacBook Air (2015)
+Apple MacBook Air (2017)
+Apple MacBook Air (2019)
+Apple MacBook Air (M1)
+Apple MacBook Air (M2)
+Apple MacBook Air (M3)
+Apple MacBook Pro 13 (2016)
+Apple MacBook Pro 13 (2018)
+Apple MacBook Pro 13 (2020)
+Apple MacBook Pro 14 (2021)
+Apple MacBook Pro 14 (2023)
+Apple MacBook Pro 16 (2019)
+Apple MacBook Pro 16 (2021)
+Apple MacBook Pro 16 (2023)
+Apple MacBook Pro 14 (M3, 2023)
+Apple MacBook Pro 14 (M4, 2024)
+Apple MacBook Pro 16 (M4, 2024)
+Apple iMac (2017)
+Apple iMac (2020)
+Apple iMac (M1, 2021)
+Apple iMac (M4, 2024)
+Apple Mac Mini (2018)
+Apple Mac Mini (M1)
+Apple Mac Mini (M2)
+Apple Mac Mini (M4)
+Apple Mac Studio (2022)
+Dell XPS 13 (2015)
+Dell XPS 13 (2018)
+Dell XPS 13 (2020)
+Dell XPS 13 (2022)
+Dell XPS 15 (2015)
+Dell XPS 15 (2018)
+Dell XPS 15 (2020)
+Dell XPS 15 (2022)
+Dell Inspiron 15 (2017)
+Dell Inspiron 15 (2020)
+Dell Inspiron 15 (2023)
+Dell Latitude 7400
+Dell Latitude 7420
+Dell Latitude 7440
+HP Spectre x360 (2017)
+HP Spectre x360 (2019)
+HP Spectre x360 (2021)
+HP Envy 13 (2018)
+HP Envy 13 (2020)
+HP Envy 13 (2022)
+HP Pavilion 15 (2017)
+HP Pavilion 15 (2020)
+HP Pavilion 15 (2023)
+HP Omen 15 (2018)
+HP Omen 15 (2020)
+HP Omen 16 (2022)
+Lenovo ThinkPad X1 Carbon (6th)
+Lenovo ThinkPad X1 Carbon (7th)
+Lenovo ThinkPad X1 Carbon (8th)
+Lenovo ThinkPad X1 Carbon (9th)
+Lenovo ThinkPad T480
+Lenovo ThinkPad T490
+Lenovo ThinkPad T14 Gen 1
+Lenovo ThinkPad T14 Gen 2
+Lenovo Yoga C930
+Lenovo Yoga C940
+Lenovo Yoga 7i (2020)
+Lenovo Yoga 7i (2022)
+Acer Swift 3 (2018)
+Acer Swift 3 (2020)
+Acer Swift 3 (2022)
+Acer Aspire 5 (2018)
+Acer Aspire 5 (2020)
+Acer Aspire 5 (2022)
+Asus ZenBook 13 (2018)
+Asus ZenBook 13 (2020)
+Asus ZenBook 13 (2022)
+Asus ROG Strix (2019)
+Asus ROG Strix (2021)
+MSI GS65 Stealth (2018)
+MSI GF65 Thin (2020)
+Microsoft Xbox One
+Microsoft Xbox One S
+Microsoft Xbox One X
+Microsoft Xbox Series S
+Microsoft Xbox Series X
+Sony PlayStation 4
+Sony PlayStation 4 Pro
+Sony PlayStation 5
+Sony PlayStation VR2
+Nintendo Switch
+Nintendo Switch OLED
+Nintendo Switch Lite
+Nintendo Switch 2
+NVIDIA Shield TV (2017)
+NVIDIA Shield TV Pro (2019)
+Apple TV HD (4th gen)
+Apple TV 4K (2017)
+Apple TV 4K (2021)
+Apple TV 4K (2022)
+Amazon Fire TV Stick (2016)
+Amazon Fire TV Stick (2018)
+Amazon Fire TV Stick 4K (2018)
+Amazon Fire TV Stick Lite (2020)
+Amazon Fire TV Stick (2020)
+Amazon Fire TV Stick 4K Max (2021)
+Amazon Fire TV Stick 4K Max (2023)
+Amazon Fire TV Cube (2018)
+Amazon Fire TV Cube (2022)
+Roku Express (2017)
+Roku Express (2019)
+Roku Express 4K (2021)
+Roku Streaming Stick (2017)
+Roku Streaming Stick+ (2017)
+Roku Streaming Stick 4K (2021)
+Roku Ultra (2017)
+Roku Ultra (2019)
+Roku Ultra (2020)
+Roku Ultra (2022)
+Google Chromecast (3rd gen)
+Google Chromecast Ultra
+Google Chromecast with Google TV (2020)
+Google Chromecast with Google TV (4K, 2022)
+Google TV Streamer (4K)
+Samsung Smart TV (2017)
+Samsung Smart TV (2018)
+Samsung Smart TV (2019)
+Samsung Smart TV (2020)
+Samsung Smart TV (2021)
+Samsung Smart TV (2022)
+Samsung Smart TV (2023)
+Samsung Smart TV (2024)
+Samsung Smart TV (2025)
+LG webOS TV (2017)
+LG webOS TV (2018)
+LG webOS TV (2019)
+LG webOS TV (2020)
+LG webOS TV (2021)
+LG webOS TV (2022)
+LG webOS TV (2023)
+LG webOS TV (2024)
+LG webOS TV (2025)
+Sony Bravia Android TV (2017)
+Sony Bravia Android TV (2018)
+Sony Bravia Android TV (2019)
+Sony Bravia Android TV (2020)
+Sony Bravia Google TV (2021)
+Sony Bravia Google TV (2022)
+Sony Bravia Google TV (2023)
+Sony Bravia Google TV (2024)
+Sony Bravia Google TV (2025)
+TCL Roku TV (2017)
+TCL Roku TV (2018)
+TCL Roku TV (2019)
+TCL Roku TV (2020)
+TCL Roku TV (2021)
+TCL Roku TV (2022)
+TCL Roku TV (2023)
+TCL Roku TV (2024)
+TCL Roku TV (2025)
+Vizio SmartCast TV (2017)
+Vizio SmartCast TV (2018)
+Vizio SmartCast TV (2019)
+Vizio SmartCast TV (2020)
+Vizio SmartCast TV (2021)
+Vizio SmartCast TV (2022)
+Vizio SmartCast TV (2023)
+Vizio SmartCast TV (2024)
+Vizio SmartCast TV (2025)
+Samsung Family Hub Refrigerator (2018)
+Samsung Family Hub Refrigerator (2020)
+Samsung Family Hub Refrigerator (2022)
+LG InstaView Refrigerator (2018)
+LG InstaView Refrigerator (2020)
+LG InstaView Refrigerator (2022)
+Whirlpool Smart Refrigerator (2018)
+Whirlpool Smart Refrigerator (2020)
+Whirlpool Smart Refrigerator (2022)
+Nest Learning Thermostat (3rd gen)
+Nest Thermostat (2020)
+Nest Learning Thermostat (4th gen)
+ecobee4
+ecobee SmartThermostat (2019)
+Ring Video Doorbell 2
+Ring Video Doorbell 3
+Ring Video Doorbell 4
+Ring Video Doorbell Pro
+Ring Video Doorbell Pro 2
+Ring Stick Up Cam
+Ring Floodlight Cam
+Nest Hello Doorbell
+Nest Doorbell (Battery)
+Arlo Pro 2
+Arlo Pro 3
+Arlo Pro 4
+Arlo Ultra
+Wyze Cam v2
+Wyze Cam v3
+Wyze Cam Pan
+Wyze Cam Pan v2
+EufyCam 2
+EufyCam 2 Pro
+Blink Mini
+Blink Outdoor (2020)
+Blink Outdoor (2022)
+Logitech Circle 2
+Logitech Circle View
+Google Nest Cam (2021)
+Google Nest Cam Indoor (2021)
+Google Nest Cam Battery (2021)
+Google Nest Cam Floodlight (2021)
+Amazon Echo (2nd gen)
+Amazon Echo (3rd gen)
+Amazon Echo (4th gen)
+Amazon Echo (5th gen)
+Echo Dot (2nd gen)
+Echo Dot (3rd gen)
+Echo Dot (4th gen)
+Echo Dot (5th gen)
+Echo Dot with Clock (3rd gen)
+Echo Dot with Clock (4th gen)
+Echo Dot with Clock (5th gen)
+Echo Show 5 (2019)
+Echo Show 5 (2021)
+Echo Show 5 (2023)
+Echo Show 8 (2019)
+Echo Show 8 (2021)
+Echo Show 8 (2023)
+Echo Show 10 (2021)
+Echo Show 15 (2021)
+Echo Show 11
+Echo Studio (2019)
+Echo Pop (2023)
+Echo Dot Max
+Echo Spot (2024)
+Echo Hub
+Google Home (2016)
+Google Home Mini (2017)
+Google Home Max (2017)
+Nest Mini (2019)
+Nest Hub (2018)
+Nest Hub (2nd gen, 2021)
+Nest Hub Max (2019)
+Apple HomePod (2018)
+Apple HomePod (2023)
+Apple HomePod mini (2020)
+Sonos One (Gen 1)
+Sonos One (Gen 2)
+Sonos Beam (Gen 1)
+Sonos Beam (Gen 2)
+Sonos Arc
+Sonos Play:5 (Gen 2)
+Sonos Move
+Sonos Roam
+Apple Watch Series 1
+Apple Watch Series 2
+Apple Watch Series 3
+Apple Watch Series 4
+Apple Watch Series 5
+Apple Watch Series 6
+Apple Watch SE (2020)
+Apple Watch Series 7
+Apple Watch Series 8
+Apple Watch Ultra
+Apple Watch SE (2022)
+Apple Watch Series 9
+Apple Watch Ultra 2
+Apple Watch Series 10
+Apple Watch SE (2024)
+Apple Watch Series 11
+Apple Watch SE 3
+Apple Watch Ultra 3
+Samsung Galaxy Watch (2018)
+Samsung Galaxy Watch Active
+Samsung Galaxy Watch Active 2
+Samsung Galaxy Watch 3
+Samsung Galaxy Watch 4
+Samsung Galaxy Watch 5
+Samsung Galaxy Watch 6
+Samsung Galaxy Watch 7
+Samsung Galaxy Watch Ultra
+Samsung Galaxy Watch 8
+Fitbit Versa 2
+Fitbit Versa 3
+Fitbit Sense
+Fitbit Sense 2
+Google Pixel Watch
+Google Pixel Watch 2
+Google Pixel Watch 3
+Google Pixel Watch 4
+Oculus Go
+Oculus Quest
+Oculus Quest 2
+Meta Quest 3
+Meta Quest 3S
+Samsung Galaxy XR
+Ring Alarm Base Station
+SimpliSafe Base Station
+Nest Protect (2nd gen)
+Roomba 960
+Roomba i7
+Roomba j7
+Roomba s9
+Roborock S5
+Roborock S7
+Roborock S8
+Ecovacs Deebot N79
+Ecovacs Deebot Ozmo T8
+Ecovacs Deebot T10
+Philips Hue Bridge (v2)
+Philips Hue Lightstrip Plus
+Philips Hue White and Color Bulb (A19)
+Philips Hue Play Light Bar
+Philips Hue Go
+LIFX A19
+LIFX Z Lightstrip
+Nanoleaf Light Panels
+Nanoleaf Shapes
+Kasa Smart Plug HS100
+Kasa Smart Plug HS103
+Kasa Smart Plug HS110
+TP-Link Kasa Smart Switch
+Wemo Smart Plug (WSP080)
+Wemo Smart Switch (WLS040)
+Meross Smart Plug
+Meross Smart Switch
+Google Nest Wifi Router (2019)
+Google Nest Wifi Router (2020)
+Google Nest Wifi Pro (2022)
+Google Wifi (2017)
+Amazon eero (2019)
+eero 6 (2020)
+eero 6+ (2022)
+eero Pro 6 (2020)
+eero Pro 6E (2022)
+TP-Link Deco M5
+TP-Link Deco M9 Plus
+TP-Link Deco X20
+TP-Link Deco X60
+TP-Link Deco X90
+Netgear Orbi RBK50
+Netgear Orbi RBK752
+Netgear Orbi RBK853
+Linksys Velop
+Asus ZenWiFi AX (XT8)
+Asus RT-AC68U
+Asus RT-AX86U
+Netgear Nighthawk R7000
+Netgear Nighthawk R8000
+Netgear Nighthawk RAX50
+D-Link DIR-882
+D-Link DIR-867
+Synology RT2600ac
+Synology MR2200ac
+QNAP TS-251+
+QNAP TS-253D
+QNAP TS-431K
+Synology DS218+
+Synology DS220+
+Synology DS920+
+Western Digital My Cloud Home
+Seagate Personal Cloud
+Ring Chime Pro
+August Smart Lock Pro
+Schlage Encode
+Withings Body+
+Withings Body Cardio
+Fitbit Aria 2
+Garmin Index S2
+Peloton Bike
+Peloton Bike+
+Peloton Tread
+NordicTrack Treadmill (Commercial 1750)
+Bowflex Max Trainer M6
+Tonal Smart Gym
+Mirror Home Gym
+Echelon Smart Connect Bike
+Sonos Sub (Gen 3)
+Razer Blade 15 (2018)
+Razer Blade 15 (2020)
+Razer Blade 15 (2022)
+Alienware m15 (2019)
+Alienware m15 R3 (2020)
+Alienware m15 R5 (2021)
+Alienware x15 (2021)
+Chromecast Audio (2016)
+Google Nest Audio (2020)
+Amazon Echo Sub (2018)
+Facebook Portal (2018)
+Facebook Portal (2021)
+Portal Mini (2019)
+Portal TV (2019)
+Naim Mu-so 2
+Devialet Phantom Reactor
+NVIDIA Jetson Nano
+Raspberry Pi 3 Model B+
+Raspberry Pi 4 Model B
+Raspberry Pi 400
+Elgato Key Light
+Wyze Thermostat
+Govee Smart Thermostat
+Honeywell Home T9
+iRobot Braava Jet m6
+Eufy RoboVac 11S
+Eufy RoboVac G30
+Eufy RoboVac X8
+Anova Precision Cooker (WiFi)
+Joule Sous Vide
+Instant Pot Smart WiFi
+LG ThinQ Washing Machine (2019)
+Samsung Smart Washer (2020)
+Bosch Home Connect Dishwasher (2019)
+GE Profile Smart Oven (2019)
+Whirlpool Smart Oven (2020)
+Dyson Pure Cool (TP04)
+Dyson Pure Hot+Cool (HP04)
+Dyson V11
+Dyson V12 Detect Slim
+Dyson V15 Detect
+Shark IQ Robot
+Shark AI Robot
+Philips Air Purifier 3000i
+Levoit Core 300S
+Levoit Core 400S
+Blueair Blue Pure 211i Max
+Polk Audio React Sound Bar
+Vizio M-Series Sound Bar (2021)
+Vizio Elevate Sound Bar
+Samsung HW-Q70R Soundbar
+Samsung HW-Q800A Soundbar
+LG SN7Y Soundbar
+Sonos Era 100
+Sonos Era 300
+Nintendo 2DS XL
+Nintendo 3DS (New)
+Analogue Pocket
+Steam Deck (64GB)
+Steam Deck (256GB)
+Steam Deck (512GB)
+Steam Deck OLED
+AYANEO 2
+ASUS ROG Ally
+Lenovo Legion Go
+Pico 4 VR Headset
+Polestar 2 Infotainment
+Tesla Model 3 Infotainment
+Tesla Model Y Infotainment
+Ford Sync 3
+Ford Sync 4
+GM OnStar Wi-Fi
+BMW iDrive 7
+BMW iDrive 8
+Mercedes MBUX
+Audi MMI Touch Response
+Volkswagen MIB3
+Hyundai Bluelink
+Kia UVO
+Volvo Sensus
+Mazda Connect (2020)
+Pioneer AVH-Z Series Head Unit
+Kenwood Excelon Series Head Unit
+Sony XAV-AX Series Head Unit
+Garmin DriveSmart 65
+Garmin DriveSmart 55
+Garmin DriveSmart 76
+Garmin Dash Cam 66W
+Garmin Dash Cam Mini 2
+Nextbase 522GW
+Nextbase 622GW
+BlackVue DR900X
+Thinkware Q800PRO
+Ring Car Cam
+Anchor Nebula Capsule II
+Anchor Nebula Solar Portable
+Epson Home Cinema 2150
+BenQ HT2050A
+BenQ TK800M
+LG CineBeam PF50KA
+XGIMI Halo
+XGIMI Horizon
+Philips PicoPix Max
+Samsung The Freestyle
+Apple AirPort Extreme (2013)
+Netgear Nighthawk M1 Mobile Router
+TP-Link Archer C7
+TP-Link Archer AX50
+Huawei B535 4G Router
+ZTE MF286 4G Router
+Ubiquiti AmpliFi HD
+Ubiquiti UniFi Dream Machine
+Ubiquiti UniFi Dream Machine Pro
+Ubiquiti UniFi Express
+Ubiquiti UniFi Cloud Key Gen2
+Ubiquiti UniFi AP AC Lite
+Ubiquiti UniFi AP AC Pro
+Ubiquiti UniFi 6 Lite
+Ubiquiti UniFi 6 Long-Range
+Ubiquiti UniFi 6 Pro
+Google Pixelbook
+Google Pixelbook Go
+Samsung Chromebook Plus
+Samsung Chromebook Pro
+HP Chromebook x2
+Lenovo Chromebook Duet
+Acer Chromebook Spin 713
+Asus Chromebook Flip C434
+Roku Smart Soundbar
+Amazon Fire TV Soundbar
+TCL Alto 8+ Soundbar
+JBL Bar 5.1 Surround
+Bose Smart Soundbar 600
+Bose Smart Soundbar 700
+Bose Smart Soundbar 900
+Bose Smart Soundbar 300
+Bose SoundTouch 300
+Sennheiser Ambeo Soundbar
+Sennheiser Ambeo Mini
+Sennheiser Ambeo Plus
+Ecovacs Winbot X
+Hobot 298 Window Cleaner
+Yale Smart Safe
+Master Lock Vault Smart
+Nuki Smart Lock 2.0
+Nuki Smart Lock 3.0
+SwitchBot Bot
+SwitchBot Curtain
+SwitchBot Hub Mini
+SwitchBot Lock
+SwitchBot Pan/Tilt Cam
+Google Nest Temperature Sensor
+Google Nest Detect
+Google Nest Secure Hub
+Apple AirPort Time Capsule (2013)
+Google OnHub (TP-Link)
+Google OnHub (ASUS)
+Withings Sleep Analyzer
+Withings Sleep
+ResMed AirSense 10
+ResMed AirSense 11
+Eight Sleep Pod
+Nanoleaf Essentials Bulb
+Nanoleaf Essentials Lightstrip
+Wyze Cam Floodlight
+Blink Floodlight Cam
+Eufy Floodlight Cam 2 Pro
+UniFi Protect G3 Flex
+UniFi Protect G4 Bullet
+UniFi Protect G4 Doorbell
+UniFi Protect G4 Dome
+Bosch Smart Camera Indoor
+Bosch Smart Camera Outdoor
+Xiaomi Mi Home Security Camera 360
+Aqara Camera Hub G2H
+Aqara Hub M2
+Aqara Door and Window Sensor
+Aqara Motion Sensor
+Aqara Smart Plug
+Aqara Roller Shade Driver E1
+SwitchBot Meter
+SwitchBot Contact Sensor
+SwitchBot Motion Sensor
+SwitchBot Thermometer Hygrometer
+Shelly 1
+Shelly 2.5
+Shelly Plug
+Shelly Plug S
+Shelly Dimmer 2
+Shelly RGBW2
+Shelly EM
+Shelly Uni
+Shelly Button1
+Shelly Duo
+Shelly Add-On Temperature Sensor
+Tuya Smart Plug
+Tuya Smart Light Bulb
+SmartThings Hub (2018)
+SmartThings Hub (Aeotec 2021)
+SmartThings Motion Sensor
+SmartThings Multipurpose Sensor
+SmartThings Outlet
+SmartThings Button
+SmartThings Water Leak Sensor
+IKEA TRÅDFRI Gateway
+IKEA TRÅDFRI Bulb E26
+IKEA TRÅDFRI Dimmer Kit
+IKEA TRÅDFRI Motion Sensor
+IKEA SYMFONISK Bookshelf Speaker
+IKEA SYMFONISK Table Lamp Speaker
+IKEA SYMFONISK Floor Lamp Speaker
+IKEA DIRIGERA Hub
+Govee LED Light Strip (H6159)
+Govee LED Light Strip (H6139)
+Govee LED Light Strip (H6102)
+Govee Immersion TV Backlights
+Govee Glide Wall Light
+Govee Lyra Floor Lamp
+Govee DreamView T1
+Govee DreamView T2
+Govee DreamView T1 Pro
+Govee RGBIC Light Strip (M1)
+Yeelight Lightstrip Plus
+Yeelight Smart Bulb (Color)
+Yeelight Ceiling Light
+Yeelight Candela
+Yeelight Bedside Lamp
+Netatmo Weather Station
+Netatmo Smart Indoor Camera
+Netatmo Smart Outdoor Camera
+Netatmo Smart Thermostat
+Netatmo Smart Door and Window Sensors
+Netatmo Smart Smoke Alarm
+Tenda AC10 Router
+Tenda AC19 Router
+MikroTik hAP ac2
+MikroTik hAP ac3
+MikroTik RB4011
+Kasa KC200 Cam
+Kasa KC300 Cam
+TP-Link Tapo C200
+TP-Link Tapo C210
+TP-Link Tapo C320WS
+TP-Link Tapo C400S2
+TP-Link Tapo D230S1
+TP-Link Tapo RV30
+TP-Link Tapo RV10
+Roborock S5 Max
+Roborock S6 MaxV
+Roborock S7 MaxV Ultra
+Roborock Q7 Max
+Roborock Q8 Max
+Roborock Q Revo
+Ecobee SmartCamera
+Ecobee SmartDoorbell
+Ecobee Switch+ 
+Anker EufyCam E
+Anker EufyCam 2C
+Anker Eufy Security Floodlight Cam
+Anker Eufy Video Doorbell 2K
+Anker Eufy Video Doorbell Dual
+Arlo Essential Spotlight Camera
+Arlo Essential Indoor Camera
+Arlo Essential Doorbell
+Ring Spotlight Cam Battery
+Ring Spotlight Cam Pro
+Ring Spotlight Cam Plus
+Ring Floodlight Cam Wired Pro
+Ring Floodlight Cam Wired Plus
+Ring Indoor Cam (2nd gen)
+Google Nest Doorbell (Wired, 2nd gen)
+Google Nest Doorbell (Battery, 2nd gen)
+Google Nest Cam (Wired, 2nd gen)
+Google Nest Cam (Floodlight, 2nd gen)
+Apple AirPort Express (2012)
+Belkin WeMo Insight Switch
+Belkin WeMo Light Switch
+D-Link DSP-W110 Smart Plug
+D-Link DSP-W115 Smart Plug
+Xiaomi Mi Smart Plug
+Xiaomi Mi Smart Switch
+Xiaomi Mi Smart Gateway
+Xiaomi Mi Smart LED Bulb
+Xiaomi Mi Smart Bedside Lamp
+Xiaomi Mi Smart Desk Lamp
+Xiaomi Mi Robot Vacuum
+Xiaomi Mi Robot Vacuum 1S
+Xiaomi Mi Robot Vacuum-Mop P
+Xiaomi Mi Robot Vacuum-Mop 2
+Xiaomi Mi Robot Vacuum-Mop 2 Pro
+Xiaomi Mi Robot Vacuum-Mop 2 Ultra
+Yeedi K650
+Yeedi Vac Max
+Yeedi Vac Station
+Yeedi Vac 2 Pro
+Dreame Bot L10 Pro
+Dreame Bot Z10 Pro
+Dreame Bot L10s Ultra
+Dreame F9
+Dreame D9
+Facebook Portal Go
+Portal+ (2021)
+Portal Go (2021)
+Wyze Cam v4
+Wyze Cam OG
+Wyze Cam OG Telephoto
+Wyze Cam Doorbell v2
+Wyze Cam Floodlight v2
+Wyze Cam Pan v3
+Blink Doorbell
+Blink Wired Floodlight Camera
+Blink Video Doorbell (Wired)
+Blink Video Doorbell (Battery)
+Eufy Dual Cam
+Eufy SoloCam E40
+Eufy SoloCam S40
+Eufy Doorbell S330
+Eufy Video Smart Lock S330
+Dell OptiPlex 7070
+Dell OptiPlex 7090
+HP EliteDesk 800 G5
+HP EliteDesk 800 G6
+Lenovo ThinkCentre M720
+Lenovo ThinkCentre M75q Gen 2
+Intel NUC 8
+Intel NUC 10
+Intel NUC 11
+Intel NUC 12
+Apple iPad (2017)
+Apple iPad (2018)
+Apple iPad (2019)
+Apple iPad (2020)
+Apple iPad (2021)
+Apple iPad (2022)
+Apple iPad (2023)
+Samsung Galaxy Tab S9
+Samsung Galaxy Tab S9+
+Samsung Galaxy Tab S9 Ultra
+Samsung Galaxy Tab S10
+Samsung Galaxy Tab S10+
+Samsung Galaxy Tab S10 Ultra
+Samsung Galaxy Tab S11
+Samsung Galaxy Tab S11+
+Samsung Galaxy Tab S11 Ultra
+Samsung Galaxy Tab A7 Lite
+Amazon Kindle Paperwhite (2018)
+Amazon Kindle Paperwhite (2021)
+Amazon Kindle Oasis (2017)
+Amazon Kindle Oasis (2019)
+Amazon Kindle (2022)
+Remarkable 2
+Boox Note Air
+Boox Nova Air
+Boox Tab Ultra
+Onyx Boox Note 5
+Onyx Boox Nova 3 Color
+Lenovo Smart Clock
+Lenovo Smart Clock Essential
+Lenovo Smart Display 7
+Lenovo Smart Display 10
+Xiaomi Mi Smart Clock
+Xiaomi Mi Smart Speaker
+Xiaomi Mi Smart Projector 2
+Xiaomi Mi Smart Projector 2 Pro
+Chromecast (HD, 2022)
+Apple TV 4K (2024)
+Roku Express (2023)
+Roku Select Series (2023)
+Roku Plus Series (2023)
+TCL Google TV (2022)
+Hisense ULED TV (2022)
+Hisense VIDAA TV (2021)
+Panasonic Android TV (2020)
+Philips Android TV (2020)
+Philips Ambilight TV (2021)
+Vizio OLED (2020)
+Vizio P-Series (2021)
+Mi TV (2020)
+Mi TV (2021)
+Mi TV (2022)
+Amazon Fire TV Omni (2021)
+Amazon Fire TV 4-Series (2021)
+Xiaomi Mi Box S
+Mi Box 4K
+Realme 4K Smart TV Stick
+Onn. Streaming Box
+Onn. Streaming Stick
+Bouygues Bbox Router
+Orange Livebox Router
+SFR Box Router
+BT Smart Hub 2
+Sky Q Hub
+Virgin Media Hub 3
+Virgin Media Hub 4
+TalkTalk Wi-Fi Hub
+Plusnet Hub One
+Comcast xFi Gateway
+AT&T BGW320
+Verizon Fios G3100
+Xfinity XB7
+Xfinity XB8
+Spectrum SAC2V2S
+Cox Panoramic Wifi Gateway
+T-Mobile 5G Home Internet Gateway
+Starlink Router
+Eero 7
+Eero Max 7
+Google Nest Wifi (2024)
+Netgear Orbi 970
+TP-Link Deco BE85
+Asus ROG Rapture GT-BE98
+Ubiquiti UniFi Gateway Max
+Ubiquiti UniFi WiFi AI AP
+Ubiquiti UniFi WiFi AI Pro
+Ubiquiti UniFi WiFi AI Ultra
+Ubiquiti UniFi WiFi AI Enterprise

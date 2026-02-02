@@ -1,0 +1,12 @@
+2026-01-17 17:14:47,978 | DEBUG | Using selector: KqueueSelector
+2026-01-17 17:14:47,978 | INFO | Starting dataset generation
+2026-01-17 17:14:47,978 | INFO | OUI cache not found at oui_cache.csv
+2026-01-17 17:14:47,979 | INFO | Downloading OUI database from https://standards-oui.ieee.org/oui/oui.csv
+2026-01-17 17:14:49,697 | INFO | Downloaded OUI database to oui_cache.csv
+2026-01-17 17:14:49,759 | INFO | Loaded 19875 vendors with 38741 OUIs from oui_cache.csv
+2026-01-22 13:02:02,998 | DEBUG | Using selector: KqueueSelector
+2026-01-22 13:02:02,998 | INFO | Starting dataset generation
+2026-01-22 13:02:03,041 | INFO | Loaded 19875 vendors with 38741 OUIs from oui_cache.csv
+2026-01-25 18:27:19,336 | DEBUG | Using selector: KqueueSelector
+2026-01-25 18:27:19,337 | INFO | Starting dataset generation
+2026-01-25 18:27:19,382 | INFO | Loaded 19875 vendors with 38741 OUIs from oui_cache.csv

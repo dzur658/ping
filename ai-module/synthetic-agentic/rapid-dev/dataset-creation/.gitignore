@@ -1,0 +1,13 @@
+# OUI cache file (downloaded at runtime)
+oui_cache.csv
+
+# Synthetic data output
+synthetic-data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
