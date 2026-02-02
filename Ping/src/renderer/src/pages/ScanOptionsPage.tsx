@@ -7,11 +7,11 @@ export default function ScanOptionsPage() {
     const navigate = useNavigate();
 
     const [status, setStatus] = useState<string>("Idle");
-    //const [logs, setLogs] = useState<string[]>([]);
+    const [logs, setLogs] = useState<string[]>([]);
 
-    // const appendLog = (msg: string) => {
-    //     setLogs(prev => [...prev, msg]);
-    // };
+    const appendLog = (msg: string) => {
+        setLogs(prev => [...prev, msg]);
+    };
 
     const handleScan = async (scanLocalDevice: boolean) => {
         try {
@@ -34,12 +34,12 @@ export default function ScanOptionsPage() {
     useEffect(() => {
         const unsubStatus = window.electronAPI.onNmapStatus((s) => setStatus(s.message));
         const unsubScan = window.electronAPI.onProcessScanStatus((s) => setStatus(s.message));
-        //const unsubLog = window.electronAPI.onLog(appendLog);
+        const unsubLog = window.electronAPI.onLog(appendLog);
 
         return () => {
             unsubStatus?.();
             unsubScan?.();
-            //unsubLog?.();
+            unsubLog?.();
         };
     }, []);
 
@@ -90,6 +90,28 @@ export default function ScanOptionsPage() {
                     >
                         Just this device
                     </Button>
+                    <Box
+                        sx={{
+                            width: "25vw",
+                            height: "15vh",
+                            overflowY: "auto",
+                            bgcolor: "#111",
+                            border: "1px solid white",
+                            p: 1
+                        }}
+                    >
+                        {logs.map((log, idx) => (
+                            <Typography
+                                key={idx}
+                                sx={{
+                                    fontSize: "0.8rem",
+                                    whiteSpace:"pre-wrap"
+                                }}
+                            >
+                                {log}
+                            </Typography>
+                        ))}
+                    </Box>
                 </Stack>
             </Stack>
         </Box>
