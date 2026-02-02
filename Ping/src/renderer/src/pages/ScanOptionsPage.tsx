@@ -1,7 +1,48 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import BackButton from "../components/BackButton";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function ScanOptionsPage() {
+    const navigate = useNavigate();
+
+    const [status, setStatus] = useState<string>("Idle");
+    //const [logs, setLogs] = useState<string[]>([]);
+
+    // const appendLog = (msg: string) => {
+    //     setLogs(prev => [...prev, msg]);
+    // };
+
+    const handleScan = async (scanLocalDevice: boolean) => {
+        try {
+            const scan  = scanLocalDevice
+                ? await window.electronAPI.scanLocalDevice()
+                : await window.electronAPI.scanLocalNetwork();
+            
+            console.log(scan)
+            
+            const xmlPath = await window.electronAPI.startScan(scan);
+
+            const newScanId = await window.electronAPI.processScan(xmlPath);
+
+            navigate("/ReportPage", { state: {scanId: newScanId, filePath: await window.electronAPI.getDBPath()}});
+        } catch (err) {
+            console.error("Scan failed:", err);
+        }
+    }
+
+    useEffect(() => {
+        const unsubStatus = window.electronAPI.onNmapStatus((s) => setStatus(s.message));
+        const unsubScan = window.electronAPI.onProcessScanStatus((s) => setStatus(s.message));
+        //const unsubLog = window.electronAPI.onLog(appendLog);
+
+        return () => {
+            unsubStatus?.();
+            unsubScan?.();
+            //unsubLog?.();
+        };
+    }, []);
+
     return (
         <Box 
             sx={{
@@ -23,6 +64,11 @@ export default function ScanOptionsPage() {
                 <Typography variant="h2" fontWeight="550">
                     What should I scan?
                 </Typography>
+                
+                <Typography variant="body1">
+                    Status: {status}
+                </Typography>
+
                 <Stack spacing={3}
                     sx={{
                         width: "25vw",
@@ -31,14 +77,7 @@ export default function ScanOptionsPage() {
                     <Button
                         variant="outlined"
                         onClick={async () => {
-                            const scan = await window.electronAPI.scanLocalNetwork();
-                            console.log("Network scan:", scan);
-
-                            const xmlPath = await window.electronAPI.runScan(scan.args)
-                            console.log("Nmap XML written to:", xmlPath);
-
-                            const pythonOut = await window.electronAPI.processScan(xmlPath)
-                            console.log("python out:", pythonOut)
+                            handleScan(false)
                         }}
                     >
                         My whole network
@@ -46,14 +85,7 @@ export default function ScanOptionsPage() {
                     <Button
                         variant="outlined"
                         onClick={async () => {
-                            const scan = await window.electronAPI.scanLocalDevice();
-                            console.log("Device scan:", scan)
-
-                            const xmlPath = await window.electronAPI.runScan(scan.args)
-                            console.log("Nmap XML written to:", xmlPath);
-
-                            const pythonOut = await window.electronAPI.processScan(xmlPath)
-                            console.log("python out:", pythonOut)
+                            handleScan(true)
                         }}
                     >
                         Just this device

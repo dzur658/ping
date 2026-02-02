@@ -1,20 +1,38 @@
-type NmapScanRequest = {
-  target: string;
-  args: string[];
+type ScanPhase = 
+  | "starting"
+  | "ping"
+  | "ports"
+  | "services"
+  | "scripts"
+  | "processing"
+  | "complete"
+  | "done"
+  | "error";
+
+interface ScanStatus {
+  phase: ScanPhase;
+  message: string;
+  percent?: number;
 }
 
 interface Window {
   electronAPI: {
     getDBPath(): Promise<string>;
     openSQLiteFile: () => Promise<string | null>;
-    getScans: (filePath: string) => Promise<any[]>;
+    getScans: (filePath: string) => Promise<{scanId: string; startTime: string;}[]>;
     getDevices: (filePath: string, selectedScan: string) => Promise<any[]>;
-    getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<any[]>;
-    getDeviceRecommendations: (filePath: string, selectedDevice: string) => Promise<any[]>;
+    getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<{filePath: string; selectedDevice: string;}[]>;
+    getDeviceRecommendations: (filePath: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
+    
     askPing: (question: string) => Promise<string>;
-    scanLocalDevice: () => Promise<NmapScanRequest>;
-    scanLocalNetwork: () => Promise<NmapScanRequest>;
-    runScan: (args: string[]) => Promise<string>;
+
+    scanLocalDevice: () => Promise<string>;
+    scanLocalNetwork: () => Promise<string>;
+    startScan: (ipRange: string) => Promise<string>;
     processScan: (args: string) => Promise<string>;
+
+    onNmapStatus(callback: (status: ScanStatus) => void): () => void;
+    onProcessScanStatus(callback: (status: ScanStatus) => void): () => void;
+    onLog(callback: (message: string) => void): () => void;
   };
 }

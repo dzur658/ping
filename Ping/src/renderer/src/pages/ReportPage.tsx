@@ -1,6 +1,6 @@
 import { Box,Typography, Table, TableBody,TableContainer,} from "@mui/material";
 import { useEffect, useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Split from "react-split"
 import BackButton from "@renderer/components/BackButton";
 import DeviceMenu from "@renderer/components/DeviceMenu";
@@ -13,6 +13,10 @@ interface ReportPageProps {
 }
 
 export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
+    const location  = useLocation();
+    const scanIdEffective = location.state?.scanId ?? selectedScan;
+    const filePathEffective = location.state?.filePath ?? filePath;
+
     const [chatMessages, setChatMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
     >([]);
@@ -71,13 +75,13 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!filePath || !selectedScan) {
+        if (!filePathEffective || !scanIdEffective) {
             navigate("/")
             return;
         }
 
         const loadDevices = async () => {
-            const deviceList: Device[] = await window.electronAPI.getDevices(filePath, selectedScan);
+            const deviceList: Device[] = await window.electronAPI.getDevices(filePathEffective, scanIdEffective);
             setDevices(deviceList);
 
             if (deviceList.length > 0 && !selectedDevice) {
@@ -86,22 +90,22 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         };
 
         loadDevices();
-    }, [filePath, selectedScan, selectedDevice, navigate])
+    }, [filePathEffective, scanIdEffective, selectedDevice, navigate])
 
     useEffect(() => {
-        if (!filePath) {
+        if (!filePathEffective) {
             navigate("/")
             return;
         }
 
         const loadScans = async () => {
-            if (!selectedDevice || !filePath) return;
-            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePath, selectedDevice);
+            if (!selectedDevice || !filePathEffective) return;
+            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePathEffective, selectedDevice);
             setRecommendations(recommendationList);
         };
 
         loadScans();
-    }, [filePath, selectedDevice, navigate])
+    }, [filePathEffective, selectedDevice, navigate])
 
     const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
         ? (() => {
@@ -216,7 +220,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                             textAlign: "center"
                         }}
                     >
-                        {filePath?.split(/[\\/]/).pop()}
+                        {filePathEffective?.split(/[\\/]/).pop()}
                     </Typography>
 
                     <Typography

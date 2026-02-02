@@ -7,9 +7,30 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDevices: (filePath: string, selectedScan: string) => ipcRenderer.invoke("sqlite:getDevices", filePath, selectedScan),
   getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceVulnerabilities", filePath, selectedDevice),
   getDeviceRecommendations: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, selectedDevice),
+  
+  askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question),
+
   scanLocalDevice: () => ipcRenderer.invoke("nmap:scanLocalDevice"),
   scanLocalNetwork: () => ipcRenderer.invoke("nmap:scanLocalNetwork"),
-  runScan: (args: string[]) => ipcRenderer.invoke("nmap:runScan", args),
+
+  startScan: (ipRange: string) => ipcRenderer.invoke("nmap:startScan", ipRange),
   processScan: (xmlPath: string) => ipcRenderer.invoke("python:processScan", xmlPath),
-  askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question)
+
+  onNmapStatus: (cb) => {
+    const listener = (_event: unknown, data: unknown) => cb(data);
+    ipcRenderer.on("nmap:status", listener)
+    return () => ipcRenderer.removeListener("nmap:status", listener)
+  },
+
+  onProcessScanStatus: (cb) => {
+    const listener = (_event: unknown, data: unknown) => cb(data);
+    ipcRenderer.on("scan:status", listener)
+    return () => ipcRenderer.removeListener("scan:status", listener)
+  },
+
+  onLog: (cb) => {
+    const listener = (_event: unknown, msg: string) => cb(msg);
+    ipcRenderer.on("nmap:log", listener)
+    return () => ipcRenderer.removeListener("nmap:log", listener);
+  }
 })

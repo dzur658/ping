@@ -4,10 +4,11 @@ import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
-import {execFile} from "child_process"
+import {spawn} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
+import {sendStatus} from "./ipcStatus";
 
 let getLlama: typeof import("node-llama-cpp").getLlama;
 let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
@@ -90,25 +91,6 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   }
 });
 
-// ipcMain.handle('sqlite:getDeviceVulnerabilities', async (_, filePath: string, selectedDevice: string) => {
-//   if (!selectedDevice) return [];
-
-//   const devicedb = new Database(filePath);
-//   try {
-//     const devicestatement = devicedb.prepare(`
-//       SELECT hosts.hostId,hosts.hostnames,services.serviceName,vulnerabilities.cveId
-//       FROM hosts 
-//       JOIN services ON hosts.hostId = services.hostId 
-//       JOIN vulnerabilities ON vulnerabilities.serviceId = services.serviceId 
-//       WHERE hosts.ipAddress = ?
-//     `)
-//     const rows = devicestatement.all(selectedDevice);
-//     return rows;
-//   } finally {
-//     devicedb.close();
-//   }
-// });
-
 ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, selectedDevice: string) => {
   if (!selectedDevice) return [];
 
@@ -167,108 +149,137 @@ function getNmapPath() {
   }
 }
 
-ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
+ipcMain.handle("nmap:startScan", async (_, ipRange: string) => {
   return new Promise<string>((resolve, reject) => {
     const xmlPath = createTempNmapXmlPath();
+    const nmapPath = getNmapPath();
+
     const scriptsDirectory = app.isPackaged
     ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'python', 'scripts')
     : path.join(app.getAppPath(), 'resources', 'python', 'scripts')
-    const nseFiles = [
+
+    const scriptPaths = [
       'console-detect-ouis.nse',
       'echo-detect-ouis.nse',
       'roku-detect-ouis.nse',
       'router-detect-ouis.nse',
       'camera-detect-ouis.nse'
-    ]
-    const scriptPaths = nseFiles
-    .map(file => path.join(scriptsDirectory, file))
-    .join(',');
-
-    console.log("scriptsDirectory", scriptsDirectory)
-    console.log("scriptPaths", scriptPaths)
+    ].map(file => path.join(scriptsDirectory, file)).join(',');
 
     const nmapArgs = [
       "--script",
       scriptPaths,
-      "-sC",
-      "-O",
-      "-sV", 
-      "-oX",
-      xmlPath,
-      ...args
+      "-sC", "-O", "-sV", "-vv", 
+      "-oX", xmlPath,
+      ipRange
     ];
 
-    console.log("nmap command: ", nmapArgs)
+    sendStatus("nmap:status", {
+      phase: "starting",
+      message: "Starting Nmap scan"
+    })
 
-    const nmapPath = getNmapPath();
+    const proc = spawn(nmapPath, nmapArgs)
 
-    execFile(
-      nmapPath,
-      nmapArgs,
-      {maxBuffer: 10 * 1024 * 1024},
-      (error) => {
-        if (error) {
-          console.error("Nmap failed:", error)
-          reject(error.message);
-          return;
-        }
-        resolve(xmlPath);
+    proc.stdout.on("data", (buf) => {
+      const text = buf.toString();
+
+      if (text.includes("Initiating Ping Scan")) {
+        sendStatus("nmap:status", {phase: "ping", message: "Ping scan"});
+      } else if (text.includes("Initiating SYN Stealth Scan")) {
+        sendStatus("nmap:status", {phase: "ports", message: "Port scan"});
+      } else if (text.includes("Initiating Service scan")) {
+        sendStatus("nmap:status", {phase: "services", message: "Service detection"});
       }
-    );
+
+      sendStatus("nmap:log", text);
+    });
+
+    proc.stderr.on("data", (buf) => {
+      sendStatus("nmap:log", buf.toString());
+    })
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Nmap exited with ${code}`));
+        return;
+      }
+
+      sendStatus("nmap:status", {
+        phase: "complete",
+        message: "Nmap scan complete"
+      });
+
+      resolve(xmlPath);
+    })
   });
 });
 
 ipcMain.handle("nmap:scanLocalDevice", async () => {
   const ip = getLocalIPv4();
 
-  return {
-    target: ip,
-    args: [ip]
-  }
+  return ip;
 })
 
 ipcMain.handle("nmap:scanLocalNetwork", async () => {
   const ip = getLocalIPv4();
   const subnet = getSubnet(ip);
 
-  return {
-    target: subnet,
-    args: [subnet]
-  }
+  return subnet;
 })
 
 ipcMain.handle("python:processScan", async (_, xmlPath: string) => {
   return new Promise<string>((resolve, reject) => {
-    const pythonParser = app.isPackaged
+    const pythonParserExe = app.isPackaged
     ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'python', 'orchestrator.exe')
     : path.join(app.getAppPath(), 'resources', 'python', 'orchestrator.exe');
-    const userData = app.getPath('userData');
-    const dbPath = path.join(userData, 'networkscans.db');
-
+    
     const jsonPath = createTempNmapJsonPath();
-    const pythonArgs = [
-      "--xml-file",
-      xmlPath,
-      "--json-file",
-      jsonPath,
-      "--db-file",
-      dbPath
-    ];
+    const dbPath = path.join(app.getPath('userData'), 'networkscans.db');
+    console.log(dbPath)
 
-    console.log("Args:", pythonArgs)
+    sendStatus("scan:status", {
+      phase: "processing",
+      message: "Processing scan results"
+    });
 
-    execFile(
-      pythonParser,
-      pythonArgs,
-      {maxBuffer: 10 * 1024 * 1024},
-      (error, stderr) => {
-        if (error) {
-          reject(stderr || error.message);
-          return;
-        }
-        resolve("itworked");
-      }
+    const proc = spawn(pythonParserExe, [
+      "--xml-file", xmlPath,
+      "--json-file", jsonPath,
+      "--db-file", dbPath
+    ]);
+
+    proc.stdout.on("data", d =>
+      sendStatus("scan:log", d.toString())
     );
+
+    proc.stderr.on("data", d =>
+      sendStatus("scan:log", d.toString())
+    );
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error("Processing failed"));
+        return;
+      }
+
+      sendStatus("scan:status", {
+        phase: "done",
+        message: "Scan processed"
+      });
+
+      const db = new Database(dbPath);
+      try {
+        const row = db.prepare(`
+          SELECT scanId FROM scan
+          ORDER BY startTime DESC LIMIT 1
+        `).get();
+        if (!row) reject(new Error("No scan found in DB"));
+        else resolve(row.scanId)
+      } finally {
+        db.close();
+      }
+    })
   });
 });
 
