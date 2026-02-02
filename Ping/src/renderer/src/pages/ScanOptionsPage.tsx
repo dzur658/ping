@@ -1,7 +1,7 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
 import BackButton from "../components/BackButton";
 
-export default function HomePage() {
+export default function ScanOptionsPage() {
     return (
         <Box 
             sx={{

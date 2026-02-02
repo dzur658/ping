@@ -170,12 +170,9 @@ function getNmapPath() {
 ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
   return new Promise<string>((resolve, reject) => {
     const xmlPath = createTempNmapXmlPath();
-    const scriptsDirectory = path.join(
-      app.getAppPath(),
-      'resources',
-      'python',
-      'scripts'
-    )
+    const scriptsDirectory = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'python', 'scripts')
+    : path.join(app.getAppPath(), 'resources', 'python', 'scripts')
     const nseFiles = [
       'console-detect-ouis.nse',
       'echo-detect-ouis.nse',
@@ -186,6 +183,9 @@ ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
     const scriptPaths = nseFiles
     .map(file => path.join(scriptsDirectory, file))
     .join(',');
+
+    console.log("scriptsDirectory", scriptsDirectory)
+    console.log("scriptPaths", scriptPaths)
 
     const nmapArgs = [
       "--script",
@@ -206,9 +206,10 @@ ipcMain.handle("nmap:runScan", async (_, args: string[]) => {
       nmapPath,
       nmapArgs,
       {maxBuffer: 10 * 1024 * 1024},
-      (error, stderr) => {
+      (error) => {
         if (error) {
-          reject(stderr || error.message);
+          console.error("Nmap failed:", error)
+          reject(error.message);
           return;
         }
         resolve(xmlPath);
@@ -238,12 +239,9 @@ ipcMain.handle("nmap:scanLocalNetwork", async () => {
 
 ipcMain.handle("python:processScan", async (_, xmlPath: string) => {
   return new Promise<string>((resolve, reject) => {
-    const pythonParser = path.join(
-      app.getAppPath(),
-      'resources',
-      'python',
-      'orchestrator.exe'
-    );
+    const pythonParser = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'python', 'orchestrator.exe')
+    : path.join(app.getAppPath(), 'resources', 'python', 'orchestrator.exe');
     const userData = app.getPath('userData');
     const dbPath = path.join(userData, 'networkscans.db');
 
