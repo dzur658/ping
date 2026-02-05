@@ -22,7 +22,7 @@ async function loadLLMImports() {
 let session: any;
 
 async function initLlamaModel() {
-  const modelPath = await ensureQwenDownloaded();
+  const {modelPath, loraPath} = await ensureQwenDownloaded();
 
   const llama = await getLlama();
 
@@ -30,7 +30,18 @@ async function initLlamaModel() {
   const model = await llama.loadModel({ modelPath });
 
   // create a context (session state for generation)
-  const context = await model.createContext();
+  const context = await model.createContext({
+    contextSize: "auto",
+    threads: 0,
+    lora:{
+      adapters: [
+        {
+          filePath: loraPath,
+          scale: 4.0
+        }
+      ]
+    }
+  });
 
   return context;
 }
@@ -39,7 +50,28 @@ async function initAI() {
   const context = await initLlamaModel();
 
   session = new LlamaChatSession({
-    contextSequence: context.getSequence()
+    contextSequence: context.getSequence(),
+    systemPrompt: `
+    You are an expert network diagnostic assistant helping home users identify devices on their network.
+
+    Given Nmap scan data, your goal is to identify the SPECIFIC device model.
+
+    CORE PROTOCOL:
+    1. START with a <think> block to analyze the data.
+    2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
+    3. END with EXACTLY ONE of the following tags:
+
+    [OPTION 1: IDENTIFIED]
+    If you are 90% certain of the specific model:
+    <device>Exact Model Name</device>
+
+    [OPTION 2: AMBIGUOUS]
+    If you are NOT certain or need user confirmation:
+    <question>The clarifying question you want to ask the user</question>
+
+    CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
+    - NEVER output plain text outside of tags.
+    `
   });
 }
 
@@ -110,23 +142,20 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, se
 });
 
 async function ensureQwenDownloaded() {
-  const modelsDir = path.join(app.getPath("userData"), "models");
-  const modelDir = path.join(modelsDir, "Qwen3-1.7B-f16.gguf");
-
-  if (fs.existsSync(path.join(modelDir, "Qwen3-1.7B-f16.gguf"))) {
-    console.log("Qwen already downloaded");
-    return modelDir;
-  }
-
-  console.log("Downloading Qwen…");
-
-  const downloadedDir = await downloadFileToCacheDir({
+  const modelPath  = await downloadFileToCacheDir({
     repo: "ggml-org/Qwen3-1.7B-GGUF",
     path: "Qwen3-1.7B-f16.gguf"
   });
 
-  console.log("Downloaded to:", downloadedDir);
-  return downloadedDir
+  const loraPath = await downloadFileToCacheDir({
+    repo: "dzur658/ping-device-id-LoRA-001-GGUF",
+    path: "adapter_model.gguf"
+  });
+
+  console.log("Model path:", modelPath);
+  console.log("LoRA path:", loraPath);
+
+  return { modelPath, loraPath };
 }
 
 function createTempNmapXmlPath() {
@@ -159,6 +188,7 @@ ipcMain.handle("nmap:startScan", async (_, ipRange: string) => {
     : path.join(app.getAppPath(), 'resources', 'python', 'scripts')
 
     const scriptPaths = [
+      'vulscan.nse',
       'console-detect-ouis.nse',
       'echo-detect-ouis.nse',
       'roku-detect-ouis.nse',
