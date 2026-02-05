@@ -70,41 +70,90 @@ def load_and_tokenize(filename, tokenizer):
     # Process each line
     for entry in raw_data:
         if "messages" in entry:
-            # Apply chat template
-            text = tokenizer.apply_chat_template(entry["messages"], tokenize=False)
+            messages = entry["messages"]
             
-            # THE FIX: Explicitly extract input_ids to prevent the Encoding Object crash
-            # We convert to a numpy array immediately so MLX is happy
-            token_ids = tokenizer(text).input_ids
-            data.append(np.array(token_ids))
+            # Build input_ids and a loss mask that only covers assistant turns
+            full_ids = []
+            loss_mask = []
+            
+            for i, msg in enumerate(messages):
+                # Tokenize up to and including this message
+                single_turn = tokenizer.apply_chat_template(
+                    messages[:i+1], 
+                    tokenize=False
+                )
+                if i == 0:
+                    turn_ids = tokenizer(single_turn).input_ids
+                    new_tokens = turn_ids
+                else:
+                    prev_turn = tokenizer.apply_chat_template(
+                        messages[:i], 
+                        tokenize=False
+                    )
+                    prev_ids = tokenizer(prev_turn).input_ids
+                    prev_len = len(prev_ids)
+                    turn_ids = tokenizer(single_turn).input_ids
+                    new_tokens = turn_ids[prev_len:]
+                
+                full_ids.extend(new_tokens)
+                
+                # Only compute loss on assistant responses
+                if msg["role"] == "assistant":
+                    loss_mask.extend([1.0] * len(new_tokens))
+                else:
+                    loss_mask.extend([0.0] * len(new_tokens))
+            
+            # Debug: verify mask distribution (remove after testing)
+            if len(data) == 0:  # Just log the first example
+                assistant_tokens = sum(loss_mask)
+                total_tokens = len(loss_mask)
+                print(f"First example: {assistant_tokens}/{total_tokens} tokens are assistant ({100*assistant_tokens/total_tokens:.1f}%)")
+
+                # Verify <think> tags are being handled correctly
+                decoded = tokenizer.decode(full_ids)
+                if "<think>" in decoded:
+                    print("Note: <think> tags ARE included in loss computation")
+
+            data.append({
+                "input_ids": np.array(full_ids),
+                "loss_mask": np.array(loss_mask, dtype=np.float32)
+            })
             
         elif "text" in entry:
             token_ids = tokenizer(entry["text"]).input_ids
-            data.append(np.array(token_ids))
+            data.append({
+                "input_ids": np.array(token_ids),
+                "loss_mask": np.ones(len(token_ids), dtype=np.float32)
+            })
             
     return data
 
-def create_batch(data, batch_size, tokenizer):
+def create_batch(data, batch_size):
+    # Guard against batch_size > dataset size
+    actual_batch_size = min(batch_size, len(data))
+    
     # Randomly sample indices
-    indices = np.random.choice(len(data), batch_size, replace=False)
+    indices = np.random.choice(len(data), actual_batch_size, replace=False)
     batch = [data[i] for i in indices]
     
     # Pad to the longest sequence in this mini-batch
-    max_len = max(len(x) for x in batch)
+    max_len = max(len(x["input_ids"]) for x in batch)
     
     # Initialize arrays
-    input_ids = np.zeros((batch_size, max_len), dtype=np.int32)
-    # Using a simple mask: 1 where data exists, 0 where padding
-    mask = np.zeros((batch_size, max_len), dtype=np.float32)
+    input_ids = np.zeros((actual_batch_size, max_len), dtype=np.int32)
+    # Loss mask: 1 only for assistant tokens, 0 for user/system/padding
+    loss_mask = np.zeros((actual_batch_size, max_len), dtype=np.float32)
     
-    for i, seq in enumerate(batch):
+    for i, item in enumerate(batch):
+        seq = item["input_ids"]
+        seq_loss_mask = item["loss_mask"]
         L = len(seq)
         input_ids[i, :L] = seq
-        mask[i, :L] = 1.0
+        loss_mask[i, :L] = seq_loss_mask
         
-    return mx.array(input_ids), mx.array(mask)
+    return mx.array(input_ids), mx.array(loss_mask)
 
-def evaluate(model, dataset, tokenizer, batch_size=4):
+def evaluate(model, dataset, batch_size=4):
     model.eval()
     total_loss = 0
     count = 0
@@ -113,17 +162,17 @@ def evaluate(model, dataset, tokenizer, batch_size=4):
     # (Simplified loop: just grabbing random batches or iterating once)
     # For speed, let's just test on 50 random batches
     for _ in range(50): 
-        input_ids, mask = create_batch(dataset, batch_size, tokenizer)
+        input_ids, loss_mask = create_batch(dataset, batch_size)
         # We use a 'no_grad' equivalent context if available, 
         # but MLX handles inference efficiently by just not asking for grads.
-        loss = loss_fn(model, input_ids, mask)
+        loss = loss_fn(model, input_ids, loss_mask)
         total_loss += loss.item()
         count += 1
     
     model.train() # Switch back to training mode
     return total_loss / count
 
-def loss_fn(model, input_ids, mask):
+def loss_fn(model, input_ids, loss_mask):
     # Forward pass: get logits
     logits = model(input_ids)
     
@@ -132,15 +181,17 @@ def loss_fn(model, input_ids, mask):
     # Targets: [Batch, Seq-1] (shifted by 1)
     logits = logits[:, :-1, :]
     targets = input_ids[:, 1:]
-    mask = mask[:, 1:] # Shift mask too
+    loss_mask = loss_mask[:, 1:] # Shift mask too
     
     # Calculate Cross Entropy
-    # reduction='none' so we can apply our custom padding mask
+    # reduction='none' so we can apply our custom loss mask (only assistant tokens)
     losses = nn.losses.cross_entropy(logits, targets, reduction='none')
     
-    # Apply mask and average
-    losses = losses * mask
-    loss = losses.sum() / mask.sum()
+    # Apply mask and average (loss_mask is 1 only for assistant tokens, 0 elsewhere)
+    losses = losses * loss_mask
+    # Avoid division by zero if no assistant tokens in batch
+    mask_sum = loss_mask.sum()
+    loss = mx.where(mask_sum > 0, losses.sum() / mask_sum, mx.array(0.0))
 
     return loss
 
@@ -188,10 +239,10 @@ def main():
 
     for i in tqdm(range(ITERS)):
         # A. Create Batch
-        input_ids, mask = create_batch(train_data, BATCH_SIZE, tokenizer)
+        input_ids, loss_mask = create_batch(train_data, BATCH_SIZE)
         
-        # B. Compute Loss and Gradients
-        loss, grads = training_step(model, input_ids, mask)
+        # B. Compute Loss and Gradients (use loss_mask which covers assistant tokens only)
+        loss, grads = training_step(model, input_ids, loss_mask)
         
         # C. Update Model Weights
         optimizer.update(model, grads)
@@ -209,7 +260,7 @@ def main():
         # F. Validation
         if (i + 1) % VAL_RATE == 0:
             # Check against data the model hasn't seen
-            val_loss = evaluate(model, valid_data, tokenizer)
+            val_loss = evaluate(model, valid_data)
 
             trainable_params = dict(tree_flatten(model.trainable_parameters()))
     
