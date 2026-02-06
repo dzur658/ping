@@ -35,6 +35,10 @@ def parse_nmap_xml(xml_file):
 
         ## Process each host in the scan
         for host in root.findall('host'):
+             ## Ensure host is up before proceeding
+            status = host.find('status')
+            if status is None or status.get('state') != 'up':
+                continue
 
             # One address per host
             ip_address = None
@@ -63,17 +67,14 @@ def parse_nmap_xml(xml_file):
             # default value
             extracted_data[ip_address]["hostnames"] = []
 
+             # append host status to extracted data
+            extracted_data[ip_address]["status"] = status.get('state')
+
             hostnames = host.find('hostnames')
             if hostnames is not None:
                 for hostname in hostnames.findall('hostname'):
                     # add hostnames to extracted data
                     extracted_data[ip_address]["hostnames"].append(hostname.get('name'))
-
-            ## Get host status
-            status = host.find('status')
-            if status is not None:
-                # append host status to extracted data
-                extracted_data[ip_address]["status"] = status.get('state')
 
             ## Process ports
             ports = host.find('ports')
@@ -82,13 +83,7 @@ def parse_nmap_xml(xml_file):
                 for port in ports.findall('port'):
                     port_id = port.get('portid')
 
-                    # Add port_id to extracted data
-                    extracted_data[ip_address][port_id] = {}
-
                     protocol = port.get('protocol')
-
-                    # add protocol to extracted data
-                    extracted_data[ip_address][port_id]['protocol'] = protocol
 
                     ## Get port state
                     state = port.find('state')
@@ -97,6 +92,12 @@ def parse_nmap_xml(xml_file):
                     ## Skip closed ports
                     if port_state != "open":
                         continue
+
+                    # Add port_id to extracted data
+                    extracted_data[ip_address][port_id] = {}
+                    
+                    # add protocol to extracted data
+                    extracted_data[ip_address][port_id]['protocol'] = protocol
 
                     # add port state to extracted data
                     extracted_data[ip_address][port_id]['state'] = port_state if state is not None else "unknown"
