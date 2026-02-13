@@ -25,9 +25,15 @@ export default function ScanOptionsPage() {
 
             const newScanId = await window.electronAPI.processScan(xmlPath);
 
+            setStatus("Ping is analyzing your devices...");
+            await window.electronAPI.analyzeScanDevices(newScanId);
+
+            setStatus("Ping has finished analyzing your devices!")
+
             navigate("/ReportPage", { state: {scanId: newScanId, filePath: await window.electronAPI.getDBPath()}});
         } catch (err) {
             console.error("Scan failed:", err);
+            setStatus("Scan failed.");
         }
     }
 

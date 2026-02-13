@@ -8,6 +8,7 @@ import {spawn} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
+import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
 
 let getLlama: typeof import("node-llama-cpp").getLlama;
@@ -81,6 +82,86 @@ ipcMain.handle("llama:askPing", async (_event, question: string) => {
   const reply = await session.prompt(question);
   
   return reply;
+});
+
+ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
+  if (!session) throw new Error ("AI not ready");
+
+  const dbPath = path.join(app.getPath("userData"), "networkscans.db");
+  const db = new Database(dbPath);
+
+  try {
+    const devices = db.prepare(`
+    SELECT hostId, ipAddress, macAddress, macVendor, hostnames, inferOs
+    FROM hosts
+    WHERE scanId = ?
+    `).all(scanId);
+
+    const total = devices.length;
+
+    sendStatus("scan:status", {
+      phase: "Ping analysis",
+      message: `Ping is starting analysis on (${total} devices)`
+    });
+
+    for (let i = 0; i < total; i++) {
+      const device = devices[i];
+
+      sendStatus("scan:status", {
+        phase: "Ping analysis",
+        message: `Analyzing ${device.ipAddress} (${i + 1}/${total})`
+      })
+
+      const parsedHostnames = device.hostnames
+      ? JSON.parse(device.hostnames)
+      : [];
+
+      const parsedOsData = device.inferOs
+      ? JSON.parse(device.inferOs)
+      : [];
+
+      const services = db.prepare(`
+        SELECT serviceId as service_id,
+          port as port_number,
+          protocol,
+          state,
+          serviceName as name,
+          serviceProduct as product,
+          serviceVersion as version
+        FROM services
+        WHERE hostId = ?
+      `).all(device.hostId);
+
+      const renderedPrompt = deviceTemplate.render({
+        ip_address: device.ipAddress,
+        mac_address: device.macAddress,
+        mac_vendor: device.macVendor,
+        hostnames: parsedHostnames,
+        nmap_os_data: JSON.stringify(parsedOsData, null, 2),
+        services
+      });
+
+      const reply = await session.prompt(renderedPrompt, {
+        temperature: 0,
+        top_k: 1,
+        repeatPenalty: {
+          penalty: 1.0,
+        }
+      });
+
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      db.prepare(`
+        INSERT INTO llm (hostId, interType, content, timestamp)
+        VALUES (?, ?, ?, ?)
+      `).run(device.hostId, "device-identification", reply, timestamp)
+      }
+
+      return {success: true};
+
+  } finally {
+    db.close();
+  }
 });
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
@@ -313,6 +394,20 @@ ipcMain.handle("python:processScan", async (_, xmlPath: string) => {
   });
 });
 
+let deviceTemplate: Template;
+
+function loadTemplate() {
+  const templatePath = path.join(
+    app.getAppPath(),
+    'resources',
+    'templates',
+    'prompt_template.j2'
+  );
+
+  const templateString = fs.readFileSync(templatePath, "utf-8");
+  deviceTemplate = new Template(templateString)
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -387,6 +482,8 @@ app.whenReady().then((async () => {
   }
 
   ipcMain.handle('database:getPath', () => dbPath);
+
+  loadTemplate();
 
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')

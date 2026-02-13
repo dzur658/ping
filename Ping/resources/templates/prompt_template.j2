@@ -1,0 +1,28 @@
+You have received the following device from Nmap.
+
+## Details
+- IP: {{ ip_address }}
+- MAC: {{ mac_address }}
+- MAC Vendor: {{ mac_vendor }}
+- Hostnames Associated with the device:
+{% for name in hostnames %}
+  - {{ name }}
+{% endfor %}
+- Nmap Inferred Os Data:
+```json
+{{ nmap_os_data }}
+```
+- Ports identified by Nmap on the Device:
+<ports>
+    {% for service in services %}
+    <service>
+        - Service ID: {{ service.service_id }}
+        - Port Number: {{ service.port_number }}
+        - Protocol: {{ service.protocol }}
+        - State: {{ service.state }}
+        - Service Name: {{ service.name }}
+        - Service Product (if applicable): {{ service.product }}
+        - Service Version (if applicable): {{ service.version }}
+    </service>
+    {% endfor %}
+</ports>
