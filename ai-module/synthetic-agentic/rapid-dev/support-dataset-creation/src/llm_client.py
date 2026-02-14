@@ -1,211 +1,96 @@
-"""LLM client for interacting with Ollama API."""
+"""LLM client factory for creating agents and chat models using LangChain."""
 
-import asyncio
-from typing import List, Dict, Callable, Optional, Mapping
+from typing import Optional
 
-from ollama import AsyncClient, ResponseError
+from langchain.agents import create_agent
+from langchain_ollama import ChatOllama
+from langchain_core.tools import BaseTool
 
 from .config import (
-    DEFAULT_OLLAMA_MODEL,
     OLLAMA_BASE_URL,
-    MAX_RETRIES,
-    RETRY_DELAY,
-    MAX_TOOL_CALLS_PER_TURN,
-    SamplingConfig,
-    USER_SAMPLING,
-    ASSISTANT_SAMPLING,
-    DEFAULT_SAMPLING,
+    USER_MODEL_KWARGS,
+    ASSISTANT_MODEL_KWARGS,
 )
+from .models import ReasoningResponse
+from .data_utils import strip_think_tags
 
 
-class OllamaClient:
-    """Async client for Ollama API using official library."""
+def create_assistant_agent(
+    model_name: str,
+    system_prompt: str,
+    tools: list[BaseTool],
+    **model_kwargs,
+):
+    """Create a ReAct agent with structured output for assistant responses.
 
-    def __init__(
-        self, base_url: str = OLLAMA_BASE_URL, model: str = DEFAULT_OLLAMA_MODEL
-    ):
-        self.base_url = base_url.rstrip("/")
-        self.model = model
-        self.client = AsyncClient(host=self.base_url)
+    Args:
+        model_name: Name of the Ollama model to use
+        system_prompt: System prompt for the agent
+        tools: List of tools the agent can use
+        **model_kwargs: Additional model parameters (temperature, num_ctx, etc.)
 
-    async def chat_completion(
-        self,
-        messages: List[Dict[str, str]],
-        sampling: Optional[SamplingConfig] = None,
-    ) -> str:
-        """Send chat completion request to Ollama with retry logic."""
-        sampling = sampling or DEFAULT_SAMPLING
-        for attempt in range(MAX_RETRIES):
-            try:
-                response = await self.client.chat(
-                    model=self.model,
-                    messages=messages,
-                    options=sampling.to_ollama_options(),
-                )
-                return response.message.content or ""
+    Returns:
+        Compiled LangChain agent
+    """
+    kwargs = {**ASSISTANT_MODEL_KWARGS, **model_kwargs}
+    model = ChatOllama(
+        model=model_name,
+        base_url=OLLAMA_BASE_URL,
+        **kwargs,
+    )
 
-            except ResponseError as e:
-                if attempt < MAX_RETRIES - 1:
-                    print(
-                        f"Ollama error: {e.error}, retrying... ({attempt + 1}/{MAX_RETRIES})"
-                    )
-                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
-                else:
-                    raise Exception(
-                        f"Ollama API error after {MAX_RETRIES} attempts: {e.error}"
-                    )
+    agent = create_agent(
+        model=model,
+        tools=tools,
+        system_prompt=system_prompt,
+        response_format=ReasoningResponse,
+    )
+    return agent
 
-            except Exception as e:
-                if attempt < MAX_RETRIES - 1:
-                    print(f"Error: {e}, retrying... ({attempt + 1}/{MAX_RETRIES})")
-                    await asyncio.sleep(RETRY_DELAY * (attempt + 1))
-                else:
-                    raise Exception(f"Ollama connection error: {e}")
 
-        return ""
+def create_user_model(model_name: str, **model_kwargs):
+    """Create a simple chat model for user responses.
 
-    async def chat_with_tools(
-        self,
-        messages: List[Dict[str, str]],
-        tools: List[Dict],
-        tool_executors: Dict[str, Callable],
-        sampling: Optional[SamplingConfig] = None,
-        on_tool_call: Optional[Callable[[str, Mapping, str], None]] = None,
-    ) -> str:
-        """Chat with tool calling support."""
-        from .tools.playwright_tool import SEARCH_TOOL_DEFINITION
+    Args:
+        model_name: Name of the Ollama model to use
+        **model_kwargs: Additional model parameters (temperature, num_ctx, etc.)
 
-        sampling = sampling or ASSISTANT_SAMPLING
+    Returns:
+        ChatOllama model instance
+    """
+    kwargs = {**USER_MODEL_KWARGS, **model_kwargs}
+    return ChatOllama(
+        model=model_name,
+        base_url=OLLAMA_BASE_URL,
+        **kwargs,
+    )
 
-        if tools and SEARCH_TOOL_DEFINITION not in tools:
-            tools = [SEARCH_TOOL_DEFINITION]
 
-        call_count = 0
+async def generate_user_response(
+    user_model,
+    persona_prompt: str,
+    conversation_history: list,
+    device_name: str,
+) -> str:
+    """Generate a user response based on persona and conversation history.
 
-        working_messages = list(messages)
+    Args:
+        user_model: Chat model instance for user responses
+        persona_prompt: Persona prompt for the user
+        conversation_history: List of previous messages
+        device_name: Name of the device being discussed
 
-        try:
-            response = await self.client.chat(
-                model=self.model,
-                messages=working_messages,
-                tools=tools if tools else None,
-                options=sampling.to_ollama_options(),
-            )
+    Returns:
+        Generated user response as string
+    """
+    messages = [{"role": "system", "content": persona_prompt}]
+    messages.extend(conversation_history)
+    messages.append(
+        {
+            "role": "user",
+            "content": f"You are asking about your {device_name}. Based on the assistant's response above, ask a natural follow-up question that shows you're trying to understand or implement their advice. Keep your response concise and in character as {persona_prompt.split('You are roleplaying as ')[1].split(',')[0]}.",
+        }
+    )
 
-            if response.message.tool_calls:
-                working_messages.append(
-                    {"role": "assistant", "content": response.message.content or ""}
-                )
-
-                for tool_call in response.message.tool_calls:
-                    if call_count >= MAX_TOOL_CALLS_PER_TURN:
-                        print("Max tool calls reached, stopping tool execution")
-                        break
-
-                    func_name = tool_call.function.name
-                    func_args = tool_call.function.arguments
-
-                    if func_name in tool_executors:
-                        try:
-                            result = await tool_executors[func_name](**func_args)
-
-                            if on_tool_call:
-                                on_tool_call(func_name, func_args, result)
-
-                            working_messages.append(
-                                {
-                                    "role": "tool",
-                                    "content": str(result),
-                                    "name": func_name,
-                                }
-                            )
-                            call_count += 1
-                        except Exception as e:
-                            print(f"Error executing tool {func_name}: {e}")
-
-                            if on_tool_call:
-                                on_tool_call(func_name, func_args, f"Error: {e}")
-
-                            working_messages.append(
-                                {
-                                    "role": "tool",
-                                    "content": f"Error: {e}",
-                                    "name": func_name,
-                                }
-                            )
-                            call_count += 1
-
-                if call_count > 0:
-                    second_response = await self.client.chat(
-                        model=self.model,
-                        messages=working_messages,
-                        options=sampling.to_ollama_options(),
-                    )
-                    return second_response.message.content or ""
-                else:
-                    return response.message.content or ""
-            else:
-                return response.message.content or ""
-
-        except ResponseError as e:
-            print(f"Ollama error: {e.error}")
-            return ""
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            return ""
-
-    async def generate_user_response(
-        self,
-        persona_prompt: str,
-        conversation_history: List[Dict[str, str]],
-        device_name: str,
-        sampling: Optional[SamplingConfig] = None,
-    ) -> str:
-        """Generate a user response based on persona and conversation history."""
-        sampling = sampling or USER_SAMPLING
-
-        messages = [{"role": "system", "content": persona_prompt}]
-
-        messages.extend(conversation_history)
-
-        messages.append(
-            {
-                "role": "user",
-                "content": f"You are asking about your {device_name}. Based on the assistant's response above, ask a natural follow-up question that shows you're trying to understand or implement their advice. Keep your response concise and in character as {persona_prompt.split('You are roleplaying as ')[1].split(',')[0]}.",
-            }
-        )
-
-        response = await self.chat_completion(messages, sampling=sampling)
-        return response.strip()
-
-    async def generate_assistant_response(
-        self,
-        system_prompt: str,
-        conversation_history: List[Dict[str, str]],
-        tools: Optional[List[Dict]] = None,
-        tool_executors: Optional[Dict[str, Callable]] = None,
-        sampling: Optional[SamplingConfig] = None,
-        on_tool_call: Optional[Callable[[str, Mapping, str], None]] = None,
-    ) -> str:
-        """Generate an assistant response with tool calling support."""
-        sampling = sampling or ASSISTANT_SAMPLING
-
-        if tools and tool_executors:
-            return await self.chat_with_tools(
-                messages=conversation_history,
-                tools=tools,
-                tool_executors=tool_executors,
-                sampling=sampling,
-                on_tool_call=on_tool_call,
-            )
-        else:
-            messages = [{"role": "system", "content": system_prompt}]
-            messages.extend(conversation_history)
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "Provide a helpful, patient response to the user's question. If they seem confused, explain in simpler terms. Be encouraging and supportive.",
-                }
-            )
-            response = await self.chat_completion(messages, sampling=sampling)
-            return response.strip()
+    response = await user_model.ainvoke(messages)
+    return strip_think_tags(response.content.strip()) if response.content else ""

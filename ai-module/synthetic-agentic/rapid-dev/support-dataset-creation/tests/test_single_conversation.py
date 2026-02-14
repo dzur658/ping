@@ -1,205 +1,261 @@
-#!/usr/bin/env python3
-"""Test script to generate and display a single training example.
-
-Usage:
-    python tests/test_single_conversation.py
-    python tests/test_single_conversation.py --device "iPhone 14"
-    python tests/test_single_conversation.py --turns 5
-    python tests/test_single_conversation.py --seed 123
-"""
+"""Test script to generate and display a single training example."""
 
 import argparse
-import asyncio
 import json
-import random
+import sqlite3
 import sys
 from pathlib import Path
-from typing import Mapping
+from typing import Dict, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import (
-    DEFAULT_OLLAMA_MODEL,
     OLLAMA_BASE_URL,
-    USER_SAMPLING,
-    ASSISTANT_SAMPLING,
+    DEFAULT_OLLAMA_MODEL,
+    CONSUMER_DEVICES_FILE,
+    KNOWLEDGE_BASE_DB,
+    USER_MODEL_KWARGS,
+    ASSISTANT_MODEL_KWARGS,
+    MAX_TURNS,
 )
-from src.llm_client import OllamaClient
+from src.llm_client import create_assistant_agent, create_user_model
 from src.conversation_engine import ConversationEngine
-from src.data_utils import get_knowledge_base_doc, load_consumer_devices
-from src.prompts import ASSISTANT_SYSTEM_PROMPT
+from src.personas import get_random_persona, get_persona_prompt
+from src.prompts import ASSISTANT_SYSTEM_PROMPT, CLEAN_ASSISTANT_SYSTEM_PROMPT
+from src.data_utils import get_knowledge_base_doc, sanitize_user_bot_message
+from src.tools.playwright_tool import search_web
 
 
-DEFAULT_OUTPUT = Path(__file__).parent / "output" / "test_conversation.jsonl"
-DEFAULT_SEED = 38
-DEFAULT_TURNS = 3
-
-
-def print_tool_call(func_name: str, args: Mapping, result: str):
-    """Print tool call details to console."""
-    print()
-    print("-" * 60)
-    print(f"[TOOL CALL] {func_name}")
-    print(f"[ARGUMENTS] {json.dumps(args, indent=2)}")
-    result_preview = result[:500] + "\n... (truncated)" if len(result) > 500 else result
-    print(f"[RESULT] ({len(result)} chars)")
-    print(result_preview)
-    print("-" * 60)
-    print()
-
-
-def parse_args():
+def parse_args() -> argparse.Namespace:
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Generate a single training example for inspection."
+        description="Generate a single conversation for testing"
     )
-    parser.add_argument("--device", type=str, help="Specific device name")
     parser.add_argument(
-        "--turns", type=int, default=DEFAULT_TURNS, help="Number of turns"
+        "--device",
+        type=str,
+        default=None,
+        help="Specific device to generate conversation for (random if not specified)",
     )
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed")
     parser.add_argument(
-        "--output", type=Path, default=DEFAULT_OUTPUT, help="Output file"
+        "--turns",
+        type=int,
+        default=MAX_TURNS,
+        help=f"Number of turns to generate (`MAX_TURNS` if not specified, max {MAX_TURNS})",
     )
-    parser.add_argument("--model", type=str, default=DEFAULT_OLLAMA_MODEL)
-    parser.add_argument("--ollama-url", type=str, default=OLLAMA_BASE_URL)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for reproducibility",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="output/test_conversation.jsonl",
+        help="Output JSONL file path",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=DEFAULT_OLLAMA_MODEL,
+        help="Ollama model to use",
+    )
+    parser.add_argument(
+        "--user-model",
+        type=str,
+        default=None,
+        help="Separate model for user responses (uses --model if not specified)",
+    )
+    parser.add_argument(
+        "--ollama-url",
+        type=str,
+        default=OLLAMA_BASE_URL,
+        help="Ollama API base URL",
+    )
     return parser.parse_args()
 
 
 def get_random_device_with_docs() -> str:
-    """Get a random device that has knowledge base documentation."""
-    devices = load_consumer_devices()
-    random.shuffle(devices)
-    for device in devices:
-        if get_knowledge_base_doc(device):
-            return device
-    raise ValueError("No devices with documentation found")
+    """Pick a random device that has knowledge base documentation."""
+    devices = []
+    with open(CONSUMER_DEVICES_FILE, "r", encoding="utf-8") as f:
+        devices = [line.strip() for line in f if line.strip()]
+
+    conn = sqlite3.connect(KNOWLEDGE_BASE_DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT device_name FROM knowledge")
+    devices_with_docs = set(row[0] for row in cursor.fetchall())
+    conn.close()
+
+    devices_with_kb = [d for d in devices if d in devices_with_docs]
+    return devices_with_kb[0] if devices_with_kb else ""
 
 
-def print_header(device: str, persona_name: str, turns: int, seed: int, output: Path):
-    """Print header section."""
+def print_header(device_name: str, persona: Dict) -> None:
+    """Print conversation header information."""
     print("=" * 60)
-    print("TRAINING EXAMPLE PREVIEW")
-    print("=" * 60)
-    print(f"Device: {device}")
-    print(f"Persona: {persona_name}")
-    print(f"Turns: {turns}")
-    print(f"Seed: {seed}")
-    print(f"Output: {output}")
+    print(f"Device: {device_name}")
+    print(f"Persona: {persona['name']} (Tech Level: {persona['tech_level']}/5)")
+    print(f"Personality: {persona['style']}")
     print("=" * 60)
     print()
 
 
-def print_conversation(messages: list, system_prompt: str):
-    """Pretty print conversation messages."""
-    print("[SYSTEM]")
-    if len(system_prompt) > 200:
-        print(system_prompt[:200] + "...")
-    else:
-        print(system_prompt)
-    print()
+def print_conversation(messages: list, persona_name: str) -> None:
+    """Print the full conversation with formatting."""
+    think_open = "<think>"
+    think_close = "</think>"
 
-    turn = 0
-    i = 0
-    while i < len(messages):
-        print("-" * 60)
-        if turn == 0:
-            print(f"TURN {turn} (Initial)")
+    for i, msg in enumerate(messages):
+        role = msg["role"]
+        content = msg.get("content", "")
+
+        if role == "user":
+            print(f"👤 {persona_name}:")
+            print(f"  {content}")
+        elif role == "assistant":
+            # Assistant content now contains think tags
+            print("🤖 Assistant:")
+            lines = content.split("\n")
+            in_think_block = False
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith(think_open):
+                    in_think_block = True
+                    continue
+                if stripped.endswith(think_close):
+                    in_think_block = False
+                    continue
+                if in_think_block:
+                    print(f"  [THINK] {line}")
+                else:
+                    print(f"  {line}")
         else:
-            print(f"TURN {turn}")
+            print(f"[{role.upper()}]:")
+
+        print()
         print("-" * 60)
         print()
 
-        if i < len(messages) and messages[i]["role"] == "user":
-            print("[USER]")
-            content = messages[i]["content"]
-            if len(content) > 500:
-                print(content[:500] + "\n... (truncated, see output file)")
-            else:
-                print(content)
-            print()
-            i += 1
 
-        if i < len(messages) and messages[i]["role"] == "assistant":
-            print("[ASSISTANT]")
-            content = messages[i]["content"]
-            if len(content) > 500:
-                print(content[:500] + "\n... (truncated, see output file)")
-            else:
-                print(content)
-            print()
-            i += 1
-
-        turn += 1
+def print_footer(total_messages: int, user_turns: int, assistant_turns: int) -> None:
+    """Print conversation summary footer."""
+    print("=" * 60)
+    print(f"Total messages: {total_messages}")
+    print(f"User turns: {user_turns}")
+    print(f"Assistant turns: {assistant_turns}")
+    print("=" * 60)
 
 
-def write_output(output_path: Path, messages: list, system_prompt: str) -> int:
-    """Write JSONL output and return file size."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    full_messages = [{"role": "system", "content": system_prompt}]
-    full_messages.extend(messages)
+def write_output(output_path: str, conversation: Dict, system_prompt: str) -> None:
+    """Write conversation to JSONL file in MLX format."""
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(json.dumps({"messages": full_messages}, ensure_ascii=False) + "\n")
+        messages = [{"role": "system", "content": system_prompt}]
+        for msg in conversation["messages"]:
+            if msg["role"] == "user":
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": sanitize_user_bot_message(msg["content"]),
+                    }
+                )
+            elif msg["role"] == "assistant":
+                messages.append({"role": "assistant", "content": msg["content"]})
+        f.write(json.dumps({"messages": messages}, ensure_ascii=False) + "\n")
 
-    return output_path.stat().st_size
-
-
-def print_footer(output_path: Path, file_size: int, message_count: int):
-    """Print footer section."""
-    print("=" * 60)
-    print("OUTPUT WRITTEN")
-    print("=" * 60)
-    print(f"File: {output_path}")
-    print(f"Size: {file_size / 1024:.1f} KB")
-    print(f"Messages: {message_count}")
-    print()
-    print("To view full output:")
-    print(f"  cat {output_path} | jq .")
-    print("=" * 60)
+    print(f"\n✓ Written to: {output_path}")
 
 
-async def main():
+async def main() -> None:
+    """Generate a single conversation and display it."""
     args = parse_args()
 
-    random.seed(args.seed)
+    if args.seed is not None:
+        import random
 
-    if args.device:
-        device = args.device
-        if not get_knowledge_base_doc(device):
-            print(f"Error: No knowledge base entry for '{device}'")
-            sys.exit(1)
-    else:
-        device = get_random_device_with_docs()
+        random.seed(args.seed)
 
-    print("Generating conversation...")
-    print()
+    # Get device name
+    device_name = args.device or get_random_device_with_docs()
+    if not device_name:
+        print("Error: No valid device found with knowledge base documentation")
+        return
 
-    client = OllamaClient(base_url=args.ollama_url, model=args.model)
+    # Load knowledge base doc
+    kb_doc = get_knowledge_base_doc(device_name)
+    if not kb_doc:
+        print(f"Error: No knowledge base entry for {device_name}")
+        return
+
+    # Build model kwargs
+    user_kwargs = dict(USER_MODEL_KWARGS)
+    assistant_kwargs = dict(ASSISTANT_MODEL_KWARGS)
+
+    if args.seed is not None:
+        user_kwargs["seed"] = args.seed
+        assistant_kwargs["seed"] = args.seed
+
+    # Create agent and user model
+    agent = create_assistant_agent(
+        model_name=args.model,
+        system_prompt=ASSISTANT_SYSTEM_PROMPT,
+        tools=[search_web],
+        **assistant_kwargs,
+    )
+    user_model_name = args.user_model or args.model
+    user_model = create_user_model(user_model_name, **user_kwargs)
+
+    # Create conversation engine
     engine = ConversationEngine(
-        ollama_client=client,
+        agent=agent,
+        user_model=user_model,
         assistant_system_prompt=ASSISTANT_SYSTEM_PROMPT,
-        user_sampling=USER_SAMPLING,
-        assistant_sampling=ASSISTANT_SAMPLING,
-        on_tool_call=print_tool_call,
+        clean_system_prompt=CLEAN_ASSISTANT_SYSTEM_PROMPT,
     )
 
+    # Generate conversation
+    print(f"\nGenerating conversation for: {device_name}\n")
     result = await engine.generate_conversation(
-        device_name=device,
-        max_turns_override=args.turns,
+        device_name=device_name, max_turns_override=args.turns
     )
 
     if not result:
-        print("Error: Failed to generate conversation")
-        sys.exit(1)
+        print("Failed to generate conversation")
+        return
 
-    print_header(device, result["persona"], args.turns, args.seed, args.output)
-    print_conversation(result["messages"], ASSISTANT_SYSTEM_PROMPT)
+    # Print results
+    print_header(
+        result["device_name"],
+        result["persona"],
+    )
 
-    file_size = write_output(args.output, result["messages"], ASSISTANT_SYSTEM_PROMPT)
+    persona_prompt = get_persona_prompt(result["persona"], result["device_name"])
+    print("Persona Prompt:")
+    print(f"  {persona_prompt[:200]}...")
+    print()
 
-    print_footer(args.output, file_size, len(result["messages"]) + 1)
+    print_conversation(result["messages"], result["persona"]["name"])
+
+    # Count turns
+    user_turns = sum(1 for m in result["messages"] if m["role"] == "user")
+    assistant_turns = sum(1 for m in result["messages"] if m["role"] == "assistant")
+    print_footer(len(result["messages"]), user_turns, assistant_turns)
+
+    # Validate no duplicate consecutive roles
+    for i in range(1, len(result["messages"])):
+        if result["messages"][i]["role"] == result["messages"][i - 1]["role"]:
+            print(
+                f"WARNING: Consecutive {result['messages'][i]['role']} messages at index {i}"
+            )
+
+    # Write output
+    write_output(args.output, result, result["system_prompt"])
 
 
 if __name__ == "__main__":
+    import asyncio
+
     asyncio.run(main())

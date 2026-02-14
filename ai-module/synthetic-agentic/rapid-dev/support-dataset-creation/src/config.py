@@ -1,39 +1,13 @@
 """Configuration for synthetic conversation generation."""
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
-
-@dataclass
-class SamplingConfig:
-    """Configuration for LLM sampling parameters."""
-
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    top_p: Optional[float] = None
-    top_k: Optional[int] = None
-    repeat_penalty: Optional[float] = None
-    num_ctx: Optional[int] = None
-    seed: Optional[int] = None
-
-    def to_ollama_options(self) -> dict:
-        base = {
-            "temperature": self.temperature,
-            "num_predict": self.max_tokens,
-            "top_p": self.top_p,
-            "top_k": self.top_k,
-            "repeat_penalty": self.repeat_penalty,
-            "num_ctx": self.num_ctx,
-            "seed": self.seed,
-        }
-        return {k: v for k, v in base.items() if v is not None}
-
 
 BASE_DIR = Path(__file__).parent.parent
 
 # Ollama settings
 DEFAULT_OLLAMA_MODEL = "qwen3-next:80b-a3b-thinking-fp16"
+DEFAULT_USER_OLLAMA_MODEL = "hf.co/LiquidAI/LFM2.5-1.2B-Instruct-GGUF:BF16"
+USER_MODEL_SUPPORTS_THINKING = False
 OLLAMA_BASE_URL = "http://127.0.0.1:11434"
 
 # SearXNG settings
@@ -41,10 +15,12 @@ SEARXNG_URL = "http://127.0.0.1:8081/search"
 MAX_SEARCH_RESULTS = 3
 
 # Conversation settings
+# NOTE: Max and Min turns do not count the preamble of the generation ([system prompt], user [system command], or the assistant response pulled from the database). 
+# They only count the turns generated in the main loop of `generate_conversation`.
 MIN_TURNS = 2
 MAX_TURNS = 10
 DEFAULT_CONVERSATIONS_PER_DEVICE = 5
-DEFAULT_WORKERS = 16
+DEFAULT_WORKERS = 4
 
 # Output settings
 OUTPUT_DIR = BASE_DIR / "output"
@@ -55,34 +31,26 @@ CONSUMER_DEVICES_FILE = BASE_DIR / "context" / "consumer_devices.txt"
 KNOWLEDGE_BASE_DB = BASE_DIR / "context" / "knowledge_base.db"
 
 # Retry settings
-MAX_RETRIES = 3
-RETRY_DELAY = 1.0
+MAX_RETRIES = 1
+RETRY_DELAY = 2.0
+LOG_FILE = OUTPUT_DIR / "generation_failures.log"
 
 # Tool settings
 SEARCH_TOOL_ENABLED = True
-MAX_TOOL_CALLS_PER_TURN = 2
+MAX_TOOL_CALLS_PER_TURN = 1
 
-# =============================================================================
-# Sampling Parameters
-# =============================================================================
+USER_MODEL_KWARGS = {
+    "temperature": 1.0,
+    "num_predict": 32768,
+    "top_p": 1.0,
+    "top_k": 40,
+    "num_ctx": 32768,
+}
 
-# User model: higher temperature for creative/varied responses
-USER_SAMPLING = SamplingConfig(
-    temperature=0.7,
-    max_tokens=32768,
-    top_p=0.8,
-    top_k=20,
-    num_ctx=32768,
-)
-
-# Assistant model: lower temperature for focused/accurate responses
-ASSISTANT_SAMPLING = SamplingConfig(
-    temperature=0.7,
-    max_tokens=64000,
-    top_p=0.8,
-    top_k=20,
-    num_ctx=64000,
-)
-
-# Default fallback
-DEFAULT_SAMPLING = SamplingConfig()
+ASSISTANT_MODEL_KWARGS = {
+    "temperature": 1.0,
+    "num_predict": 64000,
+    "top_p": 1.0,
+    "top_k": 40,
+    "num_ctx": 64000,
+}

@@ -1,6 +1,8 @@
 import asyncio
 import httpx
 import sys
+from typing import Optional
+from langchain_core.tools import tool
 from playwright.async_api import async_playwright
 from unstructured.partition.html import partition_html
 from unstructured.documents.elements import Title
@@ -8,25 +10,6 @@ from unstructured.documents.elements import NarrativeText, Text
 from unstructured.staging.base import elements_to_json
 
 from ..config import SEARXNG_URL, MAX_SEARCH_RESULTS
-
-
-SEARCH_TOOL_DEFINITION = {
-    "type": "function",
-    "function": {
-        "name": "search_web",
-        "description": "Search the web for device-specific information, menu locations, troubleshooting steps, or current details. Use this tool when the knowledge base doesn't have enough information to answer the user's question, or when you need to verify current/updated information about a device.",
-        "parameters": {
-            "type": "object",
-            "required": ["query"],
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The search query describing what information is needed",
-                }
-            },
-        },
-    },
-}
 
 
 def add_markdonwn(text: str, element_class: str) -> str:
@@ -45,7 +28,7 @@ def add_markdonwn(text: str, element_class: str) -> str:
 # --- 2. The Python Functions that Implement the Tool ---
 
 
-async def get_and_parse_page(url: str) -> tuple[str | None, str]:
+async def get_and_parse_page(url: str) -> tuple[Optional[str], str]:
     """
     Uses Playwright to browse to a URL and unstructured to parse its content.
     Returns a tuple of (clean_text, url).
@@ -93,15 +76,25 @@ async def get_and_parse_page(url: str) -> tuple[str | None, str]:
         return None, url
 
 
-async def search_and_parse_web(
+@tool
+async def search_web(
     query: str, searxng_url: str = SEARXNG_URL, max_results: int = MAX_SEARCH_RESULTS
 ) -> str:
     """
-    This is the main function that implements the tool.
-    It chains SearXNG, Playwright, and Unstructured.
-    This function is designed to be imported by other scripts.
+    Search the web for device-specific information, menu locations, troubleshooting steps, or current details.
+
+    Use this tool when the knowledge base doesn't have enough information to answer the user's question,
+    or when you need to verify current/updated information about a device.
+
+    Args:
+        query: The search query describing what information is needed
+        searxng_url: The SearXNG search endpoint URL
+        max_results: Maximum number of search results to process
+
+    Returns:
+        Formatted search results as markdown with page sources
     """
-    # print(f"\n--- 1. Searching SearXNG for: '{query}' ---", file=sys.stderr)
+    print(f"\n--- 1. Searching SearXNG for: '{query}' ---", file=sys.stderr)
 
     # --- Step 1: Query SearXNG ---
     urls = []
@@ -176,12 +169,12 @@ if __name__ == "__main__":
 
     query = sys.argv[1]
 
-    # print(f"Testing search_and_parse_web with query: '{query}'", file=sys.stderr)
+    # print(f"Testing search_web with query: '{query}'", file=sys.stderr)
 
     async def test_run():
         # The script will now print the *clean output* to stdout
         # and logs to stderr.
-        output = await search_and_parse_web(query, SEARXNG_URL, MAX_SEARCH_RESULTS)
+        output = await search_web(query, SEARXNG_URL, MAX_SEARCH_RESULTS)
         # print(output) # This prints the final result to stdout
 
         with open("results.md", "w", encoding="utf-8") as f:

@@ -1,4 +1,7 @@
-ollama>=0.1.0
+langchain>=1.1.0
+langchain-ollama>=1.0.0
+langgraph>=1.0.0
+langgraph-prebuilt>=1.0.0
 playwright>=1.40.0
 unstructured>=0.11.0
 tqdm>=4.66.0

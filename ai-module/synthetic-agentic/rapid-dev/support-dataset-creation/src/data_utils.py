@@ -1,9 +1,10 @@
 """Data utilities for loading devices, knowledge base, and writing output."""
 
 import json
+import re
 import sqlite3
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from .config import (
     CONSUMER_DEVICES_FILE,
@@ -49,13 +50,27 @@ def write_conversation_jsonl(
     conversations: List[Dict],
     system_prompt: str,
 ) -> None:
-    """Write conversations to JSONL file in MLX format."""
+    """Write conversations to JSONL file in MLX format.
+
+    Assistant messages already contain </think> tags, so no transformation needed.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w", encoding="utf-8") as f:
         for conv in conversations:
             messages = [{"role": "system", "content": system_prompt}]
-            messages.extend(conv["messages"])
+            for msg in conv["messages"]:
+                if msg["role"] == "user":
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": sanitize_user_bot_message(msg["content"]),
+                        }
+                    )
+                elif msg["role"] == "assistant":
+                    messages.append({"role": "assistant", "content": msg["content"]})
+                else:
+                    messages.append(msg)
             f.write(json.dumps({"messages": messages}, ensure_ascii=False) + "\n")
 
 
@@ -81,4 +96,43 @@ def validate_conversation(messages: List[Dict]) -> bool:
         if not msg["content"].strip():
             return False
 
+    for i in range(1, len(messages)):
+        if messages[i]["role"] == messages[i - 1]["role"]:
+            return False
+
     return True
+
+
+def strip_think_tags(content: str) -> str:
+    """Remove think blocks and their content from the text."""
+    if not content:
+        return ""
+    pattern = r"<\s*think\b[^>]*>.*?<\s*/\s*think\s*>"
+    cleaned = re.sub(pattern, "", content, flags=re.DOTALL | re.IGNORECASE)
+    return cleaned.strip()
+
+
+def sanitize_user_bot_message(content: str) -> str:
+    """Strip think tags, system-reminder tags, and wrapping quotes from user bot output."""
+    if not content:
+        return ""
+
+    content = strip_think_tags(content)
+
+    if _contains_block_tag(content, "system-reminder"):
+        return "FAILURE"
+
+    if not content:
+        return ""
+
+    # Remove wrapping quotation marks the model may add around dialogue
+    content = content.strip()
+    if len(content) >= 2 and content[0] == content[-1] and content[0] in ('"', "'"):
+        content = content[1:-1].strip()
+
+    return content
+
+
+def _contains_block_tag(content: str, tag: str) -> bool:
+    """Check if content includes a specific tag name."""
+    return re.search(rf"(?is)<\s*{re.escape(tag)}\b", content) is not None

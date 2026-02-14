@@ -14,18 +14,24 @@ from src.config import (
     DEFAULT_OUTPUT_FILE,
     DEFAULT_WORKERS,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_USER_OLLAMA_MODEL,
+    USER_MODEL_SUPPORTS_THINKING,
     OLLAMA_BASE_URL,
-    SamplingConfig,
-    USER_SAMPLING,
-    ASSISTANT_SAMPLING,
+    USER_MODEL_KWARGS,
+    ASSISTANT_MODEL_KWARGS,
 )
 from src.data_utils import (
     load_consumer_devices,
     write_conversation_jsonl,
 )
-from src.llm_client import OllamaClient
-from src.conversation_engine import ConversationEngine, generate_conversations_batch
-from src.prompts import ASSISTANT_SYSTEM_PROMPT
+from src.llm_client import create_assistant_agent, create_user_model
+from src.conversation_engine import (
+    ConversationEngine,
+    generate_conversations_batch,
+    setup_logging,
+)
+from src.prompts import ASSISTANT_SYSTEM_PROMPT, CLEAN_ASSISTANT_SYSTEM_PROMPT
+from src.tools.playwright_tool import search_web
 
 
 def parse_args():
@@ -64,7 +70,14 @@ def parse_args():
         "--model",
         type=str,
         default=DEFAULT_OLLAMA_MODEL,
-        help="Ollama model to use",
+        help="Ollama model to use for assistant turns",
+    )
+
+    parser.add_argument(
+        "--user-model",
+        type=str,
+        default=DEFAULT_USER_OLLAMA_MODEL,
+        help="Ollama model to use for user turns",
     )
 
     parser.add_argument(
@@ -77,8 +90,8 @@ def parse_args():
     parser.add_argument(
         "--system-prompt",
         type=str,
-        default=ASSISTANT_SYSTEM_PROMPT,
-        help="Custom system prompt for the assistant model",
+        default=CLEAN_ASSISTANT_SYSTEM_PROMPT,
+        help="Custom system prompt for the assistant model (used in training data output)",
     )
 
     parser.add_argument(
@@ -138,51 +151,48 @@ async def main():
     """Main execution function."""
     args = parse_args()
 
+    setup_logging()
+
     print(f"🤖 Starting synthetic conversation generation")
-    print(f"   Model: {args.model}")
+    print(f"   Assistant model: {args.model}")
+    print(f"   User model: {args.user_model}")
     print(f"   Workers: {args.workers}")
     print(f"   Output: {args.output}")
 
-    from dataclasses import replace
-
-    # Build sampling configs with CLI overrides
-    user_sampling = USER_SAMPLING
-    assistant_sampling = ASSISTANT_SAMPLING
+    # Build model kwargs with CLI overrides
+    user_kwargs = dict(USER_MODEL_KWARGS)
+    assistant_kwargs = dict(ASSISTANT_MODEL_KWARGS)
 
     # Apply shared overrides
     if args.temperature is not None:
-        user_sampling = replace(user_sampling, temperature=args.temperature)
-        assistant_sampling = replace(assistant_sampling, temperature=args.temperature)
+        user_kwargs["temperature"] = args.temperature
+        assistant_kwargs["temperature"] = args.temperature
     if args.num_ctx is not None:
-        user_sampling = replace(user_sampling, num_ctx=args.num_ctx)
-        assistant_sampling = replace(assistant_sampling, num_ctx=args.num_ctx)
+        user_kwargs["num_ctx"] = args.num_ctx
+        assistant_kwargs["num_ctx"] = args.num_ctx
     if args.seed is not None:
-        user_sampling = replace(user_sampling, seed=args.seed)
-        assistant_sampling = replace(assistant_sampling, seed=args.seed)
+        user_kwargs["seed"] = args.seed
+        assistant_kwargs["seed"] = args.seed
 
     # Apply model-specific overrides (these take precedence)
     if args.user_temperature is not None:
-        user_sampling = replace(user_sampling, temperature=args.user_temperature)
+        user_kwargs["temperature"] = args.user_temperature
     if args.assistant_temperature is not None:
-        assistant_sampling = replace(
-            assistant_sampling, temperature=args.assistant_temperature
-        )
+        assistant_kwargs["temperature"] = args.assistant_temperature
     if args.user_max_tokens is not None:
-        user_sampling = replace(user_sampling, max_tokens=args.user_max_tokens)
+        user_kwargs["num_predict"] = args.user_max_tokens
     if args.assistant_max_tokens is not None:
-        assistant_sampling = replace(
-            assistant_sampling, max_tokens=args.assistant_max_tokens
-        )
+        assistant_kwargs["num_predict"] = args.assistant_max_tokens
 
     print(
-        f"   User temp: {user_sampling.temperature}, max_tokens: {user_sampling.max_tokens}"
+        f"   User temp: {user_kwargs.get('temperature')}, max_tokens: {user_kwargs.get('num_predict')}"
     )
     print(
-        f"   Assistant temp: {assistant_sampling.temperature}, max_tokens: {assistant_sampling.max_tokens}"
+        f"   Assistant temp: {assistant_kwargs.get('temperature')}, max_tokens: {assistant_kwargs.get('num_predict')}"
     )
-    print(f"   Context window: {user_sampling.num_ctx}")
-    if user_sampling.seed is not None:
-        print(f"   Seed: {user_sampling.seed}")
+    print(f"   Context window: {user_kwargs.get('num_ctx')}")
+    if user_kwargs.get("seed") is not None:
+        print(f"   Seed: {user_kwargs.get('seed')}")
     print()
 
     if args.device:
@@ -199,12 +209,19 @@ async def main():
     print(f"🔄 Generating {args.num_per_device} conversation(s) per device")
     print(f"⏳ This may take a while...\n")
 
-    client = OllamaClient(base_url=args.ollama_url, model=args.model)
+    agent = create_assistant_agent(
+        model_name=args.model,
+        system_prompt=ASSISTANT_SYSTEM_PROMPT,
+        tools=[search_web],
+        **assistant_kwargs,
+    )
+    user_model = create_user_model(args.user_model, **user_kwargs)
+
     engine = ConversationEngine(
-        ollama_client=client,
-        assistant_system_prompt=args.system_prompt,
-        user_sampling=user_sampling,
-        assistant_sampling=assistant_sampling,
+        agent=agent,
+        user_model=user_model,
+        assistant_system_prompt=ASSISTANT_SYSTEM_PROMPT,
+        clean_system_prompt=args.system_prompt,
     )
 
     conversations = await generate_conversations_batch(
@@ -223,7 +240,9 @@ async def main():
     print(f"📊 Statistics:")
     print(f"   - Total conversations: {len(conversations)}")
     print(f"   - Devices covered: {len(set(c['device_name'] for c in conversations))}")
-    print(f"   - Personas used: {len(set(c['persona'] for c in conversations))}")
+    print(
+        f"   - Personas used: {len(set(c['persona']['name'] for c in conversations))}"
+    )
 
 
 if __name__ == "__main__":
