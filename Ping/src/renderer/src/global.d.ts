@@ -22,7 +22,7 @@ interface Window {
     getScans: (filePath: string) => Promise<{scanId: string; startTime: string;}[]>;
     getDevices: (filePath: string, selectedScan: string) => Promise<any[]>;
     getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<{filePath: string; selectedDevice: string;}[]>;
-    getDeviceRecommendations: (filePath: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
+    getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
     
     askPing: (question: string) => Promise<string>;
     analyzeScanDevices: (scanId: string) => Promise<string>;

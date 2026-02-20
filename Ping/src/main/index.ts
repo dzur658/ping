@@ -20,18 +20,16 @@ async function loadLLMImports() {
   LlamaChatSession = llamaCpp.LlamaChatSession;
 }
 
-let session: any;
+let llamaModel: any;
+let llamaContext: any;
+let cachedLoraPath: string;
 
 async function initLlamaModel() {
   const {modelPath, loraPath} = await ensureQwenDownloaded();
-
   const llama = await getLlama();
 
-  // load the model from disk
-  const model = await llama.loadModel({ modelPath });
-
-  // create a context (session state for generation)
-  const context = await model.createContext({
+  llamaModel = await llama.loadModel({ modelPath });
+  llamaContext = await llamaModel.createContext({
     contextSize: "auto",
     threads: 0,
     lora:{
@@ -43,49 +41,81 @@ async function initLlamaModel() {
       ]
     }
   });
+  cachedLoraPath = loraPath;
 
-  return context;
+  return {loraPath};
 }
 
-async function initAI() {
-  const context = await initLlamaModel();
+async function createSession(sessionType: "ping" | "deviceAnalysis") {
+  if (!llamaContext) throw new Error("Context not initialized");
 
-  session = new LlamaChatSession({
-    contextSequence: context.getSequence(),
-    systemPrompt: `
-    You are an expert network diagnostic assistant helping home users identify devices on their network.
+  const sequence = llamaContext.getSequence();
+  
+  let systemPrompt = "";
 
-    Given Nmap scan data, your goal is to identify the SPECIFIC device model.
+  switch (sessionType) {
+    case "ping":
+      systemPrompt = `
+        You are an expert network diagnostic assistant named Ping.
+        Answer user's ping/network questions clearly and concisely.
+      `;
+    break;
 
-    CORE PROTOCOL:
-    1. START with a <think> block to analyze the data.
-    2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
-    3. END with EXACTLY ONE of the following tags:
+    case "deviceAnalysis":
+      systemPrompt = `
+      You are an expert network diagnostic assistant helping home users identify devices on their network.
 
-    [OPTION 1: IDENTIFIED]
-    If you are 90% certain of the specific model:
-    <device>Exact Model Name</device>
+      Given Nmap scan data, your goal is to identify the SPECIFIC device model.
 
-    [OPTION 2: AMBIGUOUS]
-    If you are NOT certain or need user confirmation:
-    <question>The clarifying question you want to ask the user</question>
+      CORE PROTOCOL:
+      1. START with a <think> block to analyze the data.
+      2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
+      3. END with EXACTLY ONE of the following tags:
 
-    CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
-    - NEVER output plain text outside of tags.
-    `
+      [OPTION 1: IDENTIFIED]
+      If you are 90% certain of the specific model:
+      <device>Exact Model Name</device>
+
+      [OPTION 2: AMBIGUOUS]
+      If you are NOT certain or need user confirmation:
+      <question>The clarifying question you want to ask the user</question>
+
+      CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
+      - NEVER output plain text outside of tags.
+    `;
+    break;
+  }
+  
+  const session = new LlamaChatSession({
+    contextSequence: sequence,
+    systemPrompt: systemPrompt
   });
+
+  return {session, sequence}
 }
 
 ipcMain.handle("llama:askPing", async (_event, question: string) => {
-  if (!session) throw new Error("AI not ready");
+  if (!llamaModel) throw new Error("model not loaded");
 
-  const reply = await session.prompt(question);
-  
-  return reply;
+  const {session, sequence} = await createSession("deviceAnalysis");
+
+  try {
+    const reply = await session.prompt(question, {
+      temperature: 0,
+      topK: 1,
+      repeatPenalty: {
+        penalty: 1.0,
+      }
+    });
+
+    return reply;
+  } finally {
+    sequence.dispose();
+  }
 });
 
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
-  if (!session) throw new Error ("AI not ready");
+  if (!llamaModel) throw new Error ("Model not loaded");
 
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
@@ -141,24 +171,29 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
         services
       });
 
-      const reply = await session.prompt(renderedPrompt, {
-        temperature: 0,
-        top_k: 1,
-        repeatPenalty: {
-          penalty: 1.0,
+      const {session, sequence} = await createSession("deviceAnalysis");
+
+      try {
+        const reply = await session.prompt(renderedPrompt, {
+          temperature: 0,
+          topK: 1,
+          repeatPenalty: {
+            penalty: 1.0,
+          }
+        });
+
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        db.prepare(`
+          INSERT INTO llm (hostId, interType, content, timestamp)
+          VALUES (?, ?, ?, ?)
+        `).run(device.hostId, "device-identification", reply, timestamp)
+        } finally {
+          sequence.dispose();
         }
-      });
+    }
 
-      const timestamp = Math.floor(Date.now() / 1000);
-
-      db.prepare(`
-        INSERT INTO llm (hostId, interType, content, timestamp)
-        VALUES (?, ?, ?, ?)
-      `).run(device.hostId, "device-identification", reply, timestamp)
-      }
-
-      return {success: true};
-
+    return {success: true};
   } finally {
     db.close();
   }
@@ -204,7 +239,7 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   }
 });
 
-ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, selectedDevice: string) => {
+ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, scanId: string, selectedDevice: string) => {
   if (!selectedDevice) return [];
 
   const devicedb = new Database(filePath);
@@ -213,9 +248,10 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, se
       SELECT hosts.hostId,hosts.hostnames,llm.interType,llm.content
       FROM hosts 
       JOIN llm ON hosts.hostId = llm.hostId
-      WHERE hosts.ipAddress = ?
+      WHERE hosts.scanId = ?
+      AND hosts.ipAddress = ?
     `)
-    const rows = devicestatement.all(selectedDevice);
+    const rows = devicestatement.all(scanId, selectedDevice);
     return rows;
   } finally {
     devicedb.close();
@@ -503,7 +539,6 @@ app.whenReady().then((async () => {
 
   await loadLLMImports();
   await initLlamaModel();
-  await initAI();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

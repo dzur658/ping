@@ -100,7 +100,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         const loadScans = async () => {
             if (!selectedDevice || !filePathEffective) return;
-            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePathEffective, selectedDevice);
+            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(filePathEffective, scanIdEffective, selectedDevice);
             setRecommendations(recommendationList);
         };
 
@@ -308,16 +308,16 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                             width: "8px",
                                         },
                                         "&::-webkit-scrollbar-track": {
-                                            background: "rgba(255,255,255,0.05)", // very subtle track
+                                            background: "rgba(255,255,255,0.05)",
                                             borderRadius: "4px",
                                         },
                                         "&::-webkit-scrollbar-thumb": {
-                                            backgroundColor: "rgba(255,255,255,0.3)", // hidden by default
+                                            backgroundColor: "rgba(255,255,255,0.3)",
                                             borderRadius: "4px",
                                             transition: "background-color 0.3s",
                                         },
                                         "&:hover::-webkit-scrollbar-thumb": {
-                                            backgroundColor: "rgba(255,255,255,0.2)", // visible on hover
+                                            backgroundColor: "rgba(255,255,255,0.2)",
                                         },
                                     }}
                                 >
