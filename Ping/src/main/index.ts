@@ -22,28 +22,16 @@ async function loadLLMImports() {
 
 let llamaModel: any;
 let llamaContext: any;
-let cachedLoraPath: string;
 
 async function initLlamaModel() {
-  const {modelPath, loraPath} = await ensureQwenDownloaded();
+  const modelPath = await ensureQwenDownloaded();
   const llama = await getLlama();
 
   llamaModel = await llama.loadModel({ modelPath });
   llamaContext = await llamaModel.createContext({
     contextSize: "auto",
     threads: 0,
-    lora:{
-      adapters: [
-        {
-          filePath: loraPath,
-          scale: 4.0
-        }
-      ]
-    }
   });
-  cachedLoraPath = loraPath;
-
-  return {loraPath};
 }
 
 async function createSession(sessionType: "ping" | "deviceAnalysis") {
@@ -97,7 +85,7 @@ async function createSession(sessionType: "ping" | "deviceAnalysis") {
 ipcMain.handle("llama:askPing", async (_event, question: string) => {
   if (!llamaModel) throw new Error("model not loaded");
 
-  const {session, sequence} = await createSession("deviceAnalysis");
+  const {session, sequence} = await createSession("ping");
 
   try {
     const reply = await session.prompt(question, {
@@ -264,15 +252,9 @@ async function ensureQwenDownloaded() {
     path: "Qwen3-1.7B-f16.gguf"
   });
 
-  const loraPath = await downloadFileToCacheDir({
-    repo: "dzur658/ping-device-id-LoRA-001-GGUF",
-    path: "adapter_model.gguf"
-  });
-
   console.log("Model path:", modelPath);
-  console.log("LoRA path:", loraPath);
 
-  return { modelPath, loraPath };
+  return modelPath;
 }
 
 function createTempNmapXmlPath() {
