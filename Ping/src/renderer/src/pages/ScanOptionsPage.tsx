@@ -98,12 +98,12 @@ export default function ScanOptionsPage() {
                     </Button>
                     <Box
                         sx={{
-                            width: "25vw",
+                            width: "70vw",
                             height: "15vh",
                             overflowY: "auto",
                             bgcolor: "#111",
                             border: "1px solid white",
-                            p: 1
+                            p: 1,
                         }}
                     >
                         {logs.map((log, idx) => (

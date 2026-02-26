@@ -3,7 +3,7 @@ import MarkdownRenderer from "@renderer/components/MarkdownRenderer";
 
 interface RecommendationChoiceProps {
     interType: string;
-    content: string;
+    content: string | null;
     expanded: boolean;
     onSelect: () => void;
 }

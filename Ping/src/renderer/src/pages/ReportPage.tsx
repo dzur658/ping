@@ -60,6 +60,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     interface Device {
         ipAddress: string;
         hostnames: string | null;
+        interType: string;
     }
 
     interface Recommendation {
@@ -189,6 +190,8 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                             } catch {}
                         }
 
+                        const showAlert = device.interType === "device-identification"
+
                         return (
                             <DeviceMenu 
                                 key={device.ipAddress}
@@ -196,6 +199,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                 ipAddress={device.ipAddress}
                                 selected={selectedDevice === device.ipAddress}
                                 onSelect={setSelectedDevice}
+                                showAlert={showAlert}
                             />
                         );
                     })}
@@ -356,7 +360,11 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                                     <RecommendationChoice
                                                         key={recommendation.interType}
                                                         interType={recommendation.interType}
-                                                        content={recommendation.content ?? ""}
+                                                        content={
+                                                            recommendation.interType === "device-identification"
+                                                            ? null
+                                                            : recommendation.content
+                                                        }
                                                         expanded={expandedRecommendation === recommendation.interType}
                                                         onSelect={() =>setExpandedRecommendation(
                                                             expandedRecommendation === recommendation.interType ? null : recommendation.interType)
@@ -385,7 +393,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         marginTop: "20vh"
                     }}
                 >
-                    {/* <Box
+                    <Box
                         sx={{
                             border: "solid",
                             borderColor: "white",
@@ -404,7 +412,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         >
                             Ask Ping
                         </Typography>
-                    </Box> */}
+                    </Box>
                     <Box
                         sx={{
                             flex: 1,

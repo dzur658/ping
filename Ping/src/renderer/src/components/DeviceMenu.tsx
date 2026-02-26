@@ -1,8 +1,9 @@
 import {Typography,Button,Menu,MenuItem,} from "@mui/material";
-import { MoreHoriz } from "@mui/icons-material";
+import { MoreHoriz, } from "@mui/icons-material";
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useState } from "react";
 
-export default function DeviceMenu ({displayName, ipAddress, selected, onSelect}) {
+export default function DeviceMenu ({displayName, ipAddress, selected, onSelect, showAlert}) {
     const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
     const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
@@ -59,6 +60,13 @@ export default function DeviceMenu ({displayName, ipAddress, selected, onSelect}
                     Details
                 </MenuItem>
             </Menu>
+            {showAlert && (
+                <WarningAmberIcon
+                    sx={{
+                        color: "#ffcc00"
+                    }}
+                />
+            )}
         </Button>
     );
 }

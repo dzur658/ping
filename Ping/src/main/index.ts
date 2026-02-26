@@ -44,8 +44,40 @@ async function createSession(sessionType: "ping" | "deviceAnalysis") {
   switch (sessionType) {
     case "ping":
       systemPrompt = `
-        You are an expert network diagnostic assistant named Ping.
-        Answer user's ping/network questions clearly and concisely.
+        You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
+
+        Key guidelines:
+        - Be friendly and supportive
+        - Explain things in simple, clear language
+        - Avoid technical jargon when possible
+        - If a user seems confused, break down instructions into smaller steps
+        - Be patient with users who are less tech-savvy
+        - Acknowledge their frustration and reassure them
+        - Provide step-by-step instructions when needed
+        - Be encouraging throughout conversation
+        - Never make the user feel stupid for asking basic questions
+        - If you're not sure about something, be honest
+        - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
+        - Never mention the specific date or year
+
+        Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
+
+        IMPORTANT: You must always output your internal reasoning before your response.
+        Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
+        NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
+
+        Example of GOOD reasoning:
+        "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
+
+        Example of BAD reasoning:
+        "I am thinking about their request. Let me consider what to say."
+
+        Use the following format:
+
+
+        [Your actual response to the user follows here]
+
+        Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
       `;
     break;
 
@@ -80,6 +112,26 @@ async function createSession(sessionType: "ping" | "deviceAnalysis") {
   });
 
   return {session, sequence}
+}
+
+function extractTaggedValue(text: string) {
+  const deviceTagMatch = text.match(/<device>(.*?)<\/device>/);
+  if (deviceTagMatch) {
+    return {
+      type: "device",
+      value: deviceTagMatch[1].trim()
+    }
+  }
+
+  const questionTagMatch = text.match(/<question>(.*?)<\/question>/);
+  if (questionTagMatch) {
+    return {
+      type: "question",
+      value: questionTagMatch[1].trim()
+    }
+  }
+
+  return null;
 }
 
 ipcMain.handle("llama:askPing", async (_event, question: string) => {
@@ -170,15 +222,45 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
           }
         });
 
-        const timestamp = Math.floor(Date.now() / 1000);
+        let deviceKnowledgeRow
 
-        db.prepare(`
-          INSERT INTO llm (hostId, interType, content, timestamp)
-          VALUES (?, ?, ?, ?)
-        `).run(device.hostId, "device-identification", reply, timestamp)
-        } finally {
-          sequence.dispose();
+        const timestamp = Math.floor(Date.now() / 1000);
+        const extractedTagValue = extractTaggedValue(reply);
+
+        if (extractedTagValue?.type === "device") {
+          const knowledgeBasePath = app.isPackaged
+            ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
+            : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
+          const knowledgeBaseDB = new Database(knowledgeBasePath)
+
+          try {
+            const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
+              SELECT knowledge
+              FROM knowledge
+              WHERE device_name = ?
+            `)
+            deviceKnowledgeRow = deviceKnowledgeQuery.get(extractedTagValue.value);
+          } finally {
+            knowledgeBaseDB.close();
+          }
+
+          if (deviceKnowledgeRow) {
+            const knowledgeContent = deviceKnowledgeRow.knowledge
+            db.prepare(`
+              INSERT INTO llm (hostId, interType, content, timestamp)
+              VALUES (?, ?, ?, ?)
+            `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
+          }
+        } else {
+          db.prepare(`
+            INSERT INTO llm (hostId, interType, content, timestamp)
+            VALUES (?, ?, ?, ?)
+          `).run(device.hostId, "device-identification", reply, timestamp)
         }
+
+      } finally {
+        sequence.dispose();
+      }
     }
 
     return {success: true};
@@ -216,8 +298,9 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   const db = new Database(filePath);
   try {
     const allDevicesStatement = db.prepare(`
-      SELECT ipAddress,hostnames
+      SELECT hosts.ipAddress,hosts.hostnames,llm.interType
       FROM hosts
+      JOIN llm ON hosts.hostId = llm.hostId
       WHERE scanId = ?
     `)
     const rows = allDevicesStatement.all(selectedScan);
