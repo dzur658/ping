@@ -45,6 +45,23 @@ def get_knowledge_base_doc(device_name: str) -> Optional[str]:
         return None
 
 
+def swap_reasoning_for_think(content: str) -> str:
+    """Replace <reasoning> tags with think tags in the text.
+
+    Args:
+        content: Text containing <reasoning>...</reasoning> tags
+
+    Returns:
+        Text with <reasoning> replaced by think tags
+    """
+    if not content:
+        return ""
+
+    content = re.sub(r"<\s*reasoning\s*>", "<think>", content, flags=re.IGNORECASE)
+    content = re.sub(r"<\s*/\s*reasoning\s*>", "</think>", content, flags=re.IGNORECASE)
+    return content
+
+
 def write_conversation_jsonl(
     output_path: Path,
     conversations: List[Dict],
@@ -52,7 +69,7 @@ def write_conversation_jsonl(
 ) -> None:
     """Write conversations to JSONL file in MLX format.
 
-    Assistant messages already contain </think> tags, so no transformation needed.
+    Assistant messages contain <reasoning> tags which are swapped to <think> tags.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -68,7 +85,12 @@ def write_conversation_jsonl(
                         }
                     )
                 elif msg["role"] == "assistant":
-                    messages.append({"role": "assistant", "content": msg["content"]})
+                    messages.append(
+                        {
+                            "role": "assistant",
+                            "content": swap_reasoning_for_think(msg["content"]),
+                        }
+                    )
                 else:
                     messages.append(msg)
             f.write(json.dumps({"messages": messages}, ensure_ascii=False) + "\n")
@@ -100,11 +122,14 @@ def validate_conversation(messages: List[Dict]) -> bool:
         if messages[i]["role"] == messages[i - 1]["role"]:
             return False
 
+    if messages and messages[-1]["role"] != "assistant":
+        return False
+
     return True
 
 
 def strip_think_tags(content: str) -> str:
-    """Remove think blocks and their content from the text."""
+    """Remove think blocks and their content from text."""
     if not content:
         return ""
     pattern = r"<\s*think\b[^>]*>.*?<\s*/\s*think\s*>"
@@ -125,7 +150,7 @@ def sanitize_user_bot_message(content: str) -> str:
     if not content:
         return ""
 
-    # Remove wrapping quotation marks the model may add around dialogue
+    # Remove wrapping quotation marks model may add around dialogue
     content = content.strip()
     if len(content) >= 2 and content[0] == content[-1] and content[0] in ('"', "'"):
         content = content[1:-1].strip()

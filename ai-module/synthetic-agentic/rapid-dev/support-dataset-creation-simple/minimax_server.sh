@@ -1,0 +1,13 @@
+/Users/dzurec/ai-projects/llama.cpp/build/bin/llama-server \
+    --model /Volumes/EXT_NVME/minimax2_5-weights/unsloth_gguf/Q8_0/MiniMax-M2.5-Q8_0-00001-of-00006.gguf \
+    --alias "unsloth/MiniMax-2.5" \
+    --fit on \
+    --prio 2 \
+    --temp 1.0 \
+    --top-p 0.95 \
+    --min-p 0.01 \
+    --top-k 40 \
+    --ctx-size 64000 \
+    --dry-penalty-last-n 0 \
+    --port 8090 \
+    --jinja

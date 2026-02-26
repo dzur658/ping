@@ -1,0 +1,1 @@
+Iter 300 | Train Loss: 1.3090 | Val Loss: 1.2961

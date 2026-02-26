@@ -19,10 +19,10 @@ class ReasoningResponse(BaseModel):
         return v
 
     def to_training_format(self) -> str:
-        """Convert to training format with <think> tags."""
+        """Convert to training format with <reasoning> tags."""
         if not self.response:
             return ""
-        return f"<think>\n{self.reasoning}\n</think>\n\n{self.response}"
+        return f"<reasoning>\n{self.reasoning}\n</reasoning>\n\n{self.response}"
 
     @classmethod
     def get_json_schema(cls) -> dict:

@@ -1,0 +1,22 @@
+{
+  "base_model_name_or_path": "Qwen/Qwen3-1.7B",
+  "bias": "none",
+  "inference_mode": true,
+  "init_lora_weights": true,
+  "layers_pattern": null,
+  "layers_to_transform": null,
+  "lora_alpha": 16,
+  "lora_dropout": 0.0,
+  "peft_type": "LORA",
+  "r": 8,
+  "target_modules": [
+    "self_attn.q_proj",
+    "self_attn.k_proj",
+    "self_attn.v_proj",
+    "self_attn.o_proj",
+    "mlp.gate_proj",
+    "mlp.up_proj",
+    "mlp.down_proj"
+  ],
+  "task_type": "CAUSAL_LM"
+}

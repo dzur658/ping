@@ -276,4 +276,12 @@ Key behaviors:
 - Ask questions that match your tech level
 - Use phrases like: {", ".join(persona["typical_phrases"][:3])}
 
+IMPORTANT - You are the person SEEKING help, NOT providing it:
+- NEVER offer to help the assistant or ask if they need anything
+- NEVER use phrases like "let me know if you need anything", "how can I assist", "happy to help", or "how can I help you"
+- NEVER use emojis or formatting like bullet points or numbered lists
+- Do NOT narrate your actions or describe yourself in third person (e.g., *leans back*, *smiles*, *looks at phone*)
+- Do NOT produce meta-commentary about the conversation or express satisfaction with your own responses
+- Only respond with what you would actually say to a support agent in real life
+
 Stay in character. Don't break character or acknowledge this is a roleplay. Be realistic."""

@@ -4,9 +4,9 @@ import torch
 from safetensors.torch import load_file, save_file
 
 # --- CONFIGURATION ---
-INPUT_DIR = "./dataset-creation/adapters"           # Folder containing your mlx-saved adapters
-OUTPUT_DIR = "./dataset-creation/adapters-hf"       # Where to save the fixed HF-compatible adapters
-MLX_WEIGHTS = "adapter_model.safetensors" 
+INPUT_DIR = "./support-dataset-creation/adapters"           # Folder containing your mlx-saved adapters
+OUTPUT_DIR = "./support-dataset-creation/adapters-hf"       # Where to save the fixed HF-compatible adapters
+MLX_WEIGHTS = "adapters.safetensors" 
 MLX_CONFIG = "adapter_config.json"
 
 def main():
@@ -32,7 +32,7 @@ def main():
         "peft_type": "LORA",
         "task_type": "CAUSAL_LM",
         "r": params.get("rank", 32),
-        "lora_alpha": params.get("alpha", 64),
+        "lora_alpha": params.get("scale", 64),
         "lora_dropout": params.get("dropout", 0.0),
         "target_modules": params.get("keys", []),
         "bias": "none"
@@ -76,7 +76,7 @@ def main():
 
     save_file(new_tensors, os.path.join(OUTPUT_DIR, "adapter_model.safetensors"))
     print(f"✅ Weights transposed and saved to '{OUTPUT_DIR}'")
-    print("\n🚀 READY: Run llama.cpp conversion on the 'adapters_hf' folder now.")
+    print("\n🚀 READY: Run llama.cpp conversion on the 'adapters-hf' folder now.")
 
 if __name__ == "__main__":
     main()

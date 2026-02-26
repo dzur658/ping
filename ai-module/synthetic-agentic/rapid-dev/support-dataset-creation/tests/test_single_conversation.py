@@ -10,20 +10,34 @@ from typing import Dict, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import (
+    BACKEND,
     OLLAMA_BASE_URL,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_USER_OLLAMA_MODEL,
+    USER_MODEL_SUPPORTS_THINKING,
+    LLAMACPP_ASSISTANT_MODEL,
+    LLAMACPP_USER_MODEL,
     CONSUMER_DEVICES_FILE,
     KNOWLEDGE_BASE_DB,
     USER_MODEL_KWARGS,
     ASSISTANT_MODEL_KWARGS,
+    JUDGE_MODEL_KWARGS,
     MAX_TURNS,
 )
-from src.llm_client import create_assistant_agent, create_user_model
+from src.llm_client import (
+    create_assistant_agent,
+    create_user_model,
+    create_judge_model,
+)
 from src.conversation_engine import ConversationEngine
 from src.personas import get_random_persona, get_persona_prompt
 from src.prompts import ASSISTANT_SYSTEM_PROMPT, CLEAN_ASSISTANT_SYSTEM_PROMPT
-from src.data_utils import get_knowledge_base_doc, sanitize_user_bot_message
-from src.tools.playwright_tool import search_web
+from src.data_utils import (
+    get_knowledge_base_doc,
+    sanitize_user_bot_message,
+    swap_reasoning_for_think,
+)
+from src.tools.playwright_tool import SearchWebLimited
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,14 +72,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_OLLAMA_MODEL,
-        help="Ollama model to use",
+        default=LLAMACPP_ASSISTANT_MODEL
+        if BACKEND == "llamacpp"
+        else DEFAULT_OLLAMA_MODEL,
+        help=f"Model to use (llama.cpp: ignored; Ollama: model name)",
     )
     parser.add_argument(
         "--user-model",
         type=str,
-        default=None,
-        help="Separate model for user responses (uses --model if not specified)",
+        default=LLAMACPP_USER_MODEL
+        if BACKEND == "llamacpp"
+        else DEFAULT_USER_OLLAMA_MODEL,
+        help=f"Model for user responses (llama.cpp: ignored; Ollama: model name)",
     )
     parser.add_argument(
         "--ollama-url",
@@ -73,6 +91,39 @@ def parse_args() -> argparse.Namespace:
         default=OLLAMA_BASE_URL,
         help="Ollama API base URL",
     )
+
+    # Sampling parameter overrides
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        help="Override temperature for both user and assistant models",
+    )
+    parser.add_argument(
+        "--user-temperature",
+        type=float,
+        help="Override user model temperature",
+    )
+    parser.add_argument(
+        "--assistant-temperature",
+        type=float,
+        help="Override assistant model temperature",
+    )
+    parser.add_argument(
+        "--user-max-tokens",
+        type=int,
+        help="Override user model max tokens",
+    )
+    parser.add_argument(
+        "--assistant-max-tokens",
+        type=int,
+        help="Override assistant model max tokens",
+    )
+    parser.add_argument(
+        "--num-ctx",
+        type=int,
+        help="Override context window size for both models",
+    )
+
     return parser.parse_args()
 
 
@@ -104,8 +155,10 @@ def print_header(device_name: str, persona: Dict) -> None:
 
 def print_conversation(messages: list, persona_name: str) -> None:
     """Print the full conversation with formatting."""
-    think_open = "<think>"
+    think_open = "</think>"
     think_close = "</think>"
+    reasoning_open = "<reasoning>"
+    reasoning_close = "</reasoning>"
 
     for i, msg in enumerate(messages):
         role = msg["role"]
@@ -115,16 +168,19 @@ def print_conversation(messages: list, persona_name: str) -> None:
             print(f"👤 {persona_name}:")
             print(f"  {content}")
         elif role == "assistant":
-            # Assistant content now contains think tags
             print("🤖 Assistant:")
             lines = content.split("\n")
             in_think_block = False
+            in_reasoning_block = False
             for line in lines:
                 stripped = line.strip()
-                if stripped.startswith(think_open):
+                # Handle think tags
+                if stripped.startswith(think_open) or stripped.startswith(
+                    reasoning_open
+                ):
                     in_think_block = True
                     continue
-                if stripped.endswith(think_close):
+                if stripped.endswith(think_close) or stripped.endswith(reasoning_close):
                     in_think_block = False
                     continue
                 if in_think_block:
@@ -133,7 +189,8 @@ def print_conversation(messages: list, persona_name: str) -> None:
                     print(f"  {line}")
         else:
             print(f"[{role.upper()}]:")
-
+        print()
+        print("-" * 60)
         print()
         print("-" * 60)
         print()
@@ -163,7 +220,12 @@ def write_output(output_path: str, conversation: Dict, system_prompt: str) -> No
                     }
                 )
             elif msg["role"] == "assistant":
-                messages.append({"role": "assistant", "content": msg["content"]})
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": swap_reasoning_for_think(msg["content"]),
+                    }
+                )
         f.write(json.dumps({"messages": messages}, ensure_ascii=False) + "\n")
 
     print(f"\n✓ Written to: {output_path}")
@@ -178,6 +240,53 @@ async def main() -> None:
 
         random.seed(args.seed)
 
+    # Build model kwargs for diagnostic output
+    user_kwargs = dict(USER_MODEL_KWARGS)
+    assistant_kwargs = dict(ASSISTANT_MODEL_KWARGS)
+
+    # Apply shared overrides
+    if args.temperature is not None:
+        user_kwargs["temperature"] = args.temperature
+        assistant_kwargs["temperature"] = args.temperature
+    if args.num_ctx is not None:
+        user_kwargs["num_ctx"] = args.num_ctx
+        assistant_kwargs["num_ctx"] = args.num_ctx
+    if args.seed is not None:
+        user_kwargs["seed"] = args.seed
+        assistant_kwargs["seed"] = args.seed
+
+    # Apply model-specific overrides
+    if args.user_temperature is not None:
+        user_kwargs["temperature"] = args.user_temperature
+    if args.assistant_temperature is not None:
+        assistant_kwargs["temperature"] = args.assistant_temperature
+    if args.user_max_tokens is not None:
+        user_kwargs["num_predict"] = args.user_max_tokens
+    if args.assistant_max_tokens is not None:
+        assistant_kwargs["num_predict"] = args.assistant_max_tokens
+
+    # Print startup diagnostics
+    print(f"🤖 Generating single test conversation")
+    print(f"   Backend: {BACKEND}")
+    if BACKEND == "llamacpp":
+        print(f"   Assistant server: http://127.0.0.1:8080/v1")
+        print(f"   User/Judge server: http://127.0.0.1:8082/v1")
+    else:
+        print(f"   Ollama URL: {args.ollama_url}")
+    print(f"   Assistant model: {args.model}")
+    print(f"   User model: {args.user_model}")
+    print(f"   Judge model: {args.user_model}")
+    print(
+        f"   User temp: {user_kwargs.get('temperature')}, max_tokens: {user_kwargs.get('num_predict')}"
+    )
+    print(
+        f"   Assistant temp: {assistant_kwargs.get('temperature')}, max_tokens: {assistant_kwargs.get('num_predict')}"
+    )
+    print(f"   Context window: {user_kwargs.get('num_ctx')}")
+    if user_kwargs.get("seed") is not None:
+        print(f"   Seed: {user_kwargs.get('seed')}")
+    print()
+
     # Get device name
     device_name = args.device or get_random_device_with_docs()
     if not device_name:
@@ -190,23 +299,17 @@ async def main() -> None:
         print(f"Error: No knowledge base entry for {device_name}")
         return
 
-    # Build model kwargs
-    user_kwargs = dict(USER_MODEL_KWARGS)
-    assistant_kwargs = dict(ASSISTANT_MODEL_KWARGS)
-
-    if args.seed is not None:
-        user_kwargs["seed"] = args.seed
-        assistant_kwargs["seed"] = args.seed
-
     # Create agent and user model
+    search_tool = SearchWebLimited(max_calls=1)
     agent = create_assistant_agent(
         model_name=args.model,
         system_prompt=ASSISTANT_SYSTEM_PROMPT,
-        tools=[search_web],
+        tools=[search_tool],
         **assistant_kwargs,
     )
     user_model_name = args.user_model or args.model
     user_model = create_user_model(user_model_name, **user_kwargs)
+    judge_model = create_judge_model()
 
     # Create conversation engine
     engine = ConversationEngine(
@@ -214,6 +317,7 @@ async def main() -> None:
         user_model=user_model,
         assistant_system_prompt=ASSISTANT_SYSTEM_PROMPT,
         clean_system_prompt=CLEAN_ASSISTANT_SYSTEM_PROMPT,
+        judge_model=judge_model,
     )
 
     # Generate conversation
@@ -250,6 +354,24 @@ async def main() -> None:
             print(
                 f"WARNING: Consecutive {result['messages'][i]['role']} messages at index {i}"
             )
+
+    # Validate reasoning is not using generic placeholders
+    for msg in result["messages"]:
+        if msg["role"] == "assistant":
+            content = msg.get("content", "")
+            generic_placeholders = [
+                "thinking through the user's request",
+                "considering the question",
+                "processing the request",
+                "analyzing the situation",
+            ]
+            content_lower = content.lower()
+            for placeholder in generic_placeholders:
+                if placeholder in content_lower:
+                    print(
+                        f"WARNING: Generic reasoning placeholder detected: '{placeholder}'"
+                    )
+                    break
 
     # Write output
     write_output(args.output, result, result["system_prompt"])

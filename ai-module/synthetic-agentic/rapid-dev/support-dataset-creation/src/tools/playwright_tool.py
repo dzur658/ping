@@ -2,7 +2,7 @@ import asyncio
 import httpx
 import sys
 from typing import Optional
-from langchain_core.tools import tool
+from langchain_core.tools import BaseTool, tool
 from playwright.async_api import async_playwright
 from unstructured.partition.html import partition_html
 from unstructured.documents.elements import Title
@@ -142,6 +142,60 @@ async def search_web(
     # print(f"--- 3. Parsing complete. Returning content. ---", file=sys.stderr)
     # Return a single string of all context
     return "\n".join(final_output)
+
+
+class SearchWebLimited(BaseTool):
+    """Wrapper for search_web that limits usage per conversation.
+
+    This class maintains its own counter and prevents the tool from being
+    invoked more than max_calls times. Each conversation should get its
+    own instance with remaining_calls reset to max_calls.
+    """
+
+    name: str = "search_web"
+    description: str = search_web.description
+
+    max_calls: int = 1
+
+    def __init__(self, max_calls: int = 1, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, "max_calls", max_calls)
+        object.__setattr__(self, "remaining_calls", max_calls)
+        self._tool = search_web
+
+    async def _arun(
+        self,
+        query: str,
+        searxng_url: str = SEARXNG_URL,
+        max_results: int = MAX_SEARCH_RESULTS,
+    ) -> str:
+        remaining = object.__getattribute__(self, "remaining_calls")
+        if remaining <= 0:
+            return "Search is no longer available in this conversation. Please use the knowledge base provided earlier."
+
+        result = await self._tool.ainvoke(
+            {"query": query, "searxng_url": searxng_url, "max_results": max_results}
+        )
+        object.__setattr__(self, "remaining_calls", remaining - 1)
+        return result
+
+    def _run(
+        self,
+        query: str,
+        searxng_url: str = SEARXNG_URL,
+        max_results: int = MAX_SEARCH_RESULTS,
+    ) -> str:
+        remaining = object.__getattribute__(self, "remaining_calls")
+        if remaining <= 0:
+            return "Search is no longer available in this conversation. Please use the knowledge base provided earlier."
+
+        result = asyncio.run(
+            self._tool.ainvoke(
+                {"query": query, "searxng_url": searxng_url, "max_results": max_results}
+            )
+        )
+        object.__setattr__(self, "remaining_calls", remaining - 1)
+        return result
 
 
 async def direct_load(url: str) -> str:

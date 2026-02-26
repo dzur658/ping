@@ -10,28 +10,36 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.config import (
+    BACKEND,
     DEFAULT_CONVERSATIONS_PER_DEVICE,
     DEFAULT_OUTPUT_FILE,
     DEFAULT_WORKERS,
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_USER_OLLAMA_MODEL,
+    LLAMACPP_ASSISTANT_MODEL,
+    LLAMACPP_USER_MODEL,
     USER_MODEL_SUPPORTS_THINKING,
     OLLAMA_BASE_URL,
     USER_MODEL_KWARGS,
     ASSISTANT_MODEL_KWARGS,
+    JUDGE_MODEL_KWARGS,
 )
 from src.data_utils import (
     load_consumer_devices,
     write_conversation_jsonl,
 )
-from src.llm_client import create_assistant_agent, create_user_model
+from src.llm_client import (
+    create_assistant_agent,
+    create_user_model,
+    create_judge_model,
+)
 from src.conversation_engine import (
     ConversationEngine,
     generate_conversations_batch,
     setup_logging,
 )
 from src.prompts import ASSISTANT_SYSTEM_PROMPT, CLEAN_ASSISTANT_SYSTEM_PROMPT
-from src.tools.playwright_tool import search_web
+from src.tools.playwright_tool import SearchWebLimited
 
 
 def parse_args():
@@ -69,15 +77,19 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_OLLAMA_MODEL,
-        help="Ollama model to use for assistant turns",
+        default=LLAMACPP_ASSISTANT_MODEL
+        if BACKEND == "llamacpp"
+        else DEFAULT_OLLAMA_MODEL,
+        help=f"Model to use for assistant turns (llama.cpp: ignored; Ollama: model name)",
     )
 
     parser.add_argument(
         "--user-model",
         type=str,
-        default=DEFAULT_USER_OLLAMA_MODEL,
-        help="Ollama model to use for user turns",
+        default=LLAMACPP_USER_MODEL
+        if BACKEND == "llamacpp"
+        else DEFAULT_USER_OLLAMA_MODEL,
+        help=f"Model to use for user turns (llama.cpp: ignored; Ollama: model name)",
     )
 
     parser.add_argument(
@@ -104,7 +116,7 @@ def parse_args():
         "--ollama-url",
         type=str,
         default=OLLAMA_BASE_URL,
-        help="Ollama API base URL",
+        help=f"Ollama API base URL (only used when BACKEND='ollama')",
     )
 
     # Sampling parameter overrides
@@ -154,8 +166,15 @@ async def main():
     setup_logging()
 
     print(f"🤖 Starting synthetic conversation generation")
+    print(f"   Backend: {BACKEND}")
+    if BACKEND == "llamacpp":
+        print(f"   Assistant server: http://127.0.0.1:8080/v1")
+        print(f"   User/Judge server: http://127.0.0.1:8081/v1")
+    else:
+        print(f"   Ollama URL: {args.ollama_url}")
     print(f"   Assistant model: {args.model}")
     print(f"   User model: {args.user_model}")
+    print(f"   Judge model: {args.user_model}")
     print(f"   Workers: {args.workers}")
     print(f"   Output: {args.output}")
 
@@ -209,27 +228,20 @@ async def main():
     print(f"🔄 Generating {args.num_per_device} conversation(s) per device")
     print(f"⏳ This may take a while...\n")
 
-    agent = create_assistant_agent(
-        model_name=args.model,
-        system_prompt=ASSISTANT_SYSTEM_PROMPT,
-        tools=[search_web],
-        **assistant_kwargs,
-    )
     user_model = create_user_model(args.user_model, **user_kwargs)
-
-    engine = ConversationEngine(
-        agent=agent,
-        user_model=user_model,
-        assistant_system_prompt=ASSISTANT_SYSTEM_PROMPT,
-        clean_system_prompt=args.system_prompt,
-    )
+    judge_model = create_judge_model()
 
     conversations = await generate_conversations_batch(
-        engine=engine,
+        user_model=user_model,
         devices=devices,
         num_per_device=args.num_per_device,
         max_turns=args.max_turns,
         max_concurrent=args.workers,
+        model_name=args.model,
+        system_prompt=ASSISTANT_SYSTEM_PROMPT,
+        clean_system_prompt=args.system_prompt,
+        assistant_kwargs=assistant_kwargs,
+        judge_model=judge_model,
     )
 
     print(f"\n✅ Successfully generated {len(conversations)} conversations")
