@@ -30,6 +30,7 @@ def create_tables(conn):
         hostnames TEXT,
         status TEXT,
         inferOs TEXT,
+        Identified TEXT,
         FOREIGN KEY (scanId) REFERENCES scan (scanId)
     );
     """)

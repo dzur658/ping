@@ -55,9 +55,10 @@ def insert_data_from_json(conn, json_data):
             mac_address = host_data.get('mac_address', '')
             mac_vendor = host_data.get('mac_vendor', None)
             
+            # insert empty string into identified since the LLM will identify the device later and update this field
             cursor.execute(
-                "INSERT INTO hosts (scanId, ipAddress, macAddress, macVendor, hostnames, status, inferOs) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (scan_id, ip_address, mac_address, mac_vendor, hostnames_json, host_data.get('status'), osmatch_json)
+                "INSERT INTO hosts (scanId, ipAddress, macAddress, macVendor, hostnames, status, inferOs, Identified) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (scan_id, ip_address, mac_address, mac_vendor, hostnames_json, host_data.get('status'), osmatch_json, "")
             )
             # Get the ID of the host we just inserted
             host_id = cursor.lastrowid
