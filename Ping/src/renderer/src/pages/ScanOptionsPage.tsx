@@ -98,7 +98,7 @@ export default function ScanOptionsPage() {
                     </Button>
                     <Box
                         sx={{
-                            width: "70vw",
+                            width: "25vw",
                             height: "15vh",
                             overflowY: "auto",
                             bgcolor: "#111",

@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, scanId, selectedDevice),
   
   askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question),
+  askFollowup: (question: string, historyContent: string, deviceName: string) => ipcRenderer.invoke("llama:askFollowup", question, historyContent, deviceName),
   analyzeScanDevices: (scanId: string) => ipcRenderer.invoke("llama:analyzeScanDevices", scanId),
 
   scanLocalDevice: () => ipcRenderer.invoke("nmap:scanLocalDevice"),

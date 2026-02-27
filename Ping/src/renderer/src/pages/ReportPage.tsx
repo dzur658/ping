@@ -38,7 +38,20 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         setChatLoading(true);
 
         try {
-            const reply = await window.electronAPI.askPing(userMessage);
+            const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
+            let reply;
+            if (pendingQuestion && chatMessages.length === 0) {
+                    const question = userMessage
+                    const historyContent = pendingQuestion.content ?? "";
+                    const deviceName = selectedDeviceName
+                reply = await window.electronAPI.askFollowup(
+                    question,
+                    historyContent,
+                    deviceName
+                );
+            } else {
+                reply = await window.electronAPI.askPing(userMessage);
+            }
 
             setChatMessages(prev => [
             ...prev,
@@ -107,6 +120,26 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         loadScans();
     }, [filePathEffective, selectedDevice, navigate])
+
+    useEffect(() => {
+        const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
+
+        if (pendingQuestion && pendingQuestion.content) {
+            const cleanQuestion = pendingQuestion.content
+                .replace(/<think>[\s\S]*?<\/think>/g, "")
+                .replace(/<question>|<\/question>/g, "")
+                .trim();
+
+            setChatMessages([
+                {
+                    role: "assistant",
+                    content: cleanQuestion
+                }
+            ]);
+        } else {
+            setChatMessages([]);
+        }
+    }, [selectedDevice, recommendations]);
 
     const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
         ? (() => {

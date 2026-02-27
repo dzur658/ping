@@ -25,6 +25,7 @@ interface Window {
     getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
     
     askPing: (question: string) => Promise<string>;
+    askFollowup: (question: string, historyContent: string, deviceName: string) => Promise<string>;
     analyzeScanDevices: (scanId: string) => Promise<string>;
 
     scanLocalDevice: () => Promise<string>;

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, systemPreferences } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -10,9 +10,13 @@ import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
+import { ModelTraining } from '@mui/icons-material'
+import { ChatHistoryItem, LlamaChat } from 'node-llama-cpp'
 
 let getLlama: typeof import("node-llama-cpp").getLlama;
 let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
+let deviceIDModelPath: string;
+let technicalAssistantModelPath: string;
 
 async function loadLLMImports() {
   const llamaCpp = await import("node-llama-cpp");
@@ -20,97 +24,77 @@ async function loadLLMImports() {
   LlamaChatSession = llamaCpp.LlamaChatSession;
 }
 
-let llamaModel: any;
-let llamaContext: any;
+let activeContext: any = null;
+let activeModel: any = null;
+let currentLoadedPath: any = null;
 
-async function initLlamaModel() {
-  const modelPath = await ensureQwenDownloaded();
+async function ensureDeviceIDModelDownloaded() {
+  const modelPath  = await downloadFileToCacheDir({
+    repo: "dzur658/ping-device-id-fused-gguf-001",
+    path: "ping_device_id.gguf"
+  });
+
+  console.log("Model path:", modelPath);
+
+  return modelPath;
+}
+
+async function ensureTechnicalAssistantModelDownloaded() {
+  const modelPath   = await downloadFileToCacheDir({
+    repo: "dzur658/ping-technical-assistant-fused-gguf-001",
+    path: "ping_technical_support.gguf"
+  });
+
+  console.log("Model path:", modelPath);
+
+  return modelPath;
+}
+
+async function initModels() {
+  deviceIDModelPath = await ensureDeviceIDModelDownloaded();
+  technicalAssistantModelPath = await ensureTechnicalAssistantModelDownloaded();
+}
+
+async function createModelContext(modelPath) {
+  if (currentLoadedPath === modelPath && activeContext) {
+    return activeContext
+  }
+
+  if (activeContext) {
+    console.log("Cleaning up RAM before switching models...");
+    await activeContext.dispose();
+    activeContext = null;
+    activeModel = null;
+  }
+
   const llama = await getLlama();
-
-  llamaModel = await llama.loadModel({ modelPath });
-  llamaContext = await llamaModel.createContext({
+  activeModel = await llama.loadModel({ modelPath });
+  activeContext = await activeModel.createContext({
     contextSize: "auto",
     threads: 0,
   });
+
+  currentLoadedPath = modelPath;
+  return activeContext;
 }
 
-async function createSession(sessionType: "ping" | "deviceAnalysis") {
-  if (!llamaContext) throw new Error("Context not initialized");
-
-  const sequence = llamaContext.getSequence();
-  
-  let systemPrompt = "";
-
-  switch (sessionType) {
-    case "ping":
-      systemPrompt = `
-        You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
-
-        Key guidelines:
-        - Be friendly and supportive
-        - Explain things in simple, clear language
-        - Avoid technical jargon when possible
-        - If a user seems confused, break down instructions into smaller steps
-        - Be patient with users who are less tech-savvy
-        - Acknowledge their frustration and reassure them
-        - Provide step-by-step instructions when needed
-        - Be encouraging throughout conversation
-        - Never make the user feel stupid for asking basic questions
-        - If you're not sure about something, be honest
-        - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
-        - Never mention the specific date or year
-
-        Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
-
-        IMPORTANT: You must always output your internal reasoning before your response.
-        Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
-        NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
-
-        Example of GOOD reasoning:
-        "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
-
-        Example of BAD reasoning:
-        "I am thinking about their request. Let me consider what to say."
-
-        Use the following format:
-
-
-        [Your actual response to the user follows here]
-
-        Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
-      `;
-    break;
-
-    case "deviceAnalysis":
-      systemPrompt = `
-      You are an expert network diagnostic assistant helping home users identify devices on their network.
-
-      Given Nmap scan data, your goal is to identify the SPECIFIC device model.
-
-      CORE PROTOCOL:
-      1. START with a <think> block to analyze the data.
-      2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
-      3. END with EXACTLY ONE of the following tags:
-
-      [OPTION 1: IDENTIFIED]
-      If you are 90% certain of the specific model:
-      <device>Exact Model Name</device>
-
-      [OPTION 2: AMBIGUOUS]
-      If you are NOT certain or need user confirmation:
-      <question>The clarifying question you want to ask the user</question>
-
-      CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
-      - NEVER output plain text outside of tags.
-    `;
-    break;
-  }
-  
+async function createTechnicalAssistantSession(context, systemPrompt: string) {
+  const sequence = context.getSequence();
   const session = new LlamaChatSession({
-    contextSequence: sequence,
-    systemPrompt: systemPrompt
-  });
+      contextSequence: sequence,
+      systemPrompt: systemPrompt
+    });
+    
+  return {session, sequence}
+}
 
+async function createDeviceIDScanSession(context, systemPrompt: string) {
+  const sequence = context.getSequence();
+  const session = new LlamaChatSession({
+      contextSequence: sequence,
+      systemPrompt: systemPrompt
+    });
+    
   return {session, sequence}
 }
 
@@ -135,9 +119,53 @@ function extractTaggedValue(text: string) {
 }
 
 ipcMain.handle("llama:askPing", async (_event, question: string) => {
-  if (!llamaModel) throw new Error("model not loaded");
+  const systemPrompt = `
+    You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
 
-  const {session, sequence} = await createSession("ping");
+    Key guidelines:
+    - Be friendly and supportive
+    - Explain things in simple, clear language
+    - Avoid technical jargon when possible
+    - If a user seems confused, break down instructions into smaller steps
+    - Be patient with users who are less tech-savvy
+    - Acknowledge their frustration and reassure them
+    - Provide step-by-step instructions when needed
+    - Be encouraging throughout conversation
+    - Never make the user feel stupid for asking basic questions
+    - If you're not sure about something, be honest
+    - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
+    - Never mention the specific date or year
+
+    Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
+
+    IMPORTANT: You must always output your internal reasoning before your response.
+    Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
+    NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
+
+    Example of GOOD reasoning:
+    "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
+
+    Example of BAD reasoning:
+    "I am thinking about their request. Let me consider what to say."
+
+    Use the following format:
+
+
+    [Your actual response to the user follows here]
+
+    Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
+  `
+  // const fakeAssistantPrompt = `
+  // <think>
+  // Trigger: System Command received ("Load reference for ${device_str}").
+  // Action: Retrieve "${device_str} Update Guide" from database.
+  // Plan: Output the full update instructions so the user has the context available immediately.
+  // </think>"
+  // ${knowledge_base_doc}
+  // `
+  // const context = await createModelContext(technicalAssistantModelPath)
+  const context = await createModelContext(deviceIDModelPath)
+  const {session, sequence} = await createTechnicalAssistantSession(context, systemPrompt);
 
   try {
     const reply = await session.prompt(question, {
@@ -155,10 +183,31 @@ ipcMain.handle("llama:askPing", async (_event, question: string) => {
 });
 
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
-  if (!llamaModel) throw new Error ("Model not loaded");
-
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
+  const deviceIDModelContext = await createModelContext(deviceIDModelPath)
+
+  const systemPrompt = `
+    You are an expert network diagnostic assistant helping home users identify devices on their network.
+
+    Given Nmap scan data, your goal is to identify the SPECIFIC device model.
+
+    CORE PROTOCOL:
+    1. START with a <think> block to analyze the data.
+    2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
+    3. END with EXACTLY ONE of the following tags:
+
+    [OPTION 1: IDENTIFIED]
+    If you are 90% certain of the specific model:
+    <device>Exact Model Name</device>
+
+    [OPTION 2: AMBIGUOUS]
+    If you are NOT certain or need user confirmation:
+    <question>The clarifying question you want to ask the user</question>
+
+    CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
+    - NEVER output plain text outside of tags.
+  `;
 
   try {
     const devices = db.prepare(`
@@ -211,7 +260,7 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
         services
       });
 
-      const {session, sequence} = await createSession("deviceAnalysis");
+      const {session, sequence} = await createDeviceIDScanSession(deviceIDModelContext, systemPrompt);
 
       try {
         const reply = await session.prompt(renderedPrompt, {
@@ -268,6 +317,71 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
     db.close();
   }
 });
+
+ipcMain.handle("llama:askFollowup", async (_event, question, historyContent, deviceName) =>{
+  const context = await createModelContext(deviceIDModelPath);
+  const sequence = context.getSequence();
+  const systemPrompt = `
+    You are an expert network diagnostic assistant helping home users identify devices on their network.
+
+    Given Nmap scan data, your goal is to identify the SPECIFIC device model.
+
+    CORE PROTOCOL:
+    1. START with a <think> block to analyze the data.
+    2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
+    3. END with EXACTLY ONE of the following tags:
+
+    [OPTION 1: IDENTIFIED]
+    If you are 90% certain of the specific model:
+    <device>Exact Model Name</device>
+
+    [OPTION 2: AMBIGUOUS]
+    If you are NOT certain or need user confirmation:
+    <question>The clarifying question you want to ask the user</question>
+
+    CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
+    - NEVER output plain text outside of tags.
+  `
+
+  const session = new LlamaChatSession({
+    contextSequence: sequence,
+    systemPrompt: systemPrompt
+  });
+
+  const history: ChatHistoryItem[] = [
+    {
+      type: "user",
+      text: `[System Command]: Load reference for ${deviceName}`
+    },
+    {
+      type: "model",
+      response: [`
+        <think>
+        Trigger: System Command received ("Load reference for ${deviceName}").
+        Action: Retrieve knowledge base.
+        Plan: Context loaded.
+        </think>
+        (Context from database included here...)
+      `]
+    },
+    {
+      type: "model",
+      response: [historyContent]
+    },
+  ];
+
+  session.setChatHistory(history);
+
+  try {
+    const reply = await session.prompt(question, {
+      temperature: 0.7,
+      topK: 40,
+    });
+    return reply;
+  } finally {
+    sequence.dispose()
+  }
+})
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -328,17 +442,6 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, sc
     devicedb.close();
   }
 });
-
-async function ensureQwenDownloaded() {
-  const modelPath  = await downloadFileToCacheDir({
-    repo: "ggml-org/Qwen3-1.7B-GGUF",
-    path: "Qwen3-1.7B-f16.gguf"
-  });
-
-  console.log("Model path:", modelPath);
-
-  return modelPath;
-}
 
 function createTempNmapXmlPath() {
   const filename = `nmap-${randomUUID()}.xml`;
@@ -603,7 +706,7 @@ app.whenReady().then((async () => {
   // );
 
   await loadLLMImports();
-  await initLlamaModel();
+  await initModels();
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
