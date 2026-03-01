@@ -187,9 +187,9 @@ end
 
 action = function(host, port)
 
-  local mincvss = tonumber(stdnse.get_script_args("mincvss")) or 5.0
-  local minyear = tonumber(stdnse.get_script_args("minyear")) or 2016
-  local maxper  = tonumber(stdnse.get_script_args("maxper"))  or 20
+  local mincvss = tonumber(stdnse.get_script_args("mincvss")) or 0
+  local minyear = tonumber(stdnse.get_script_args("minyear")) or 2014
+  local maxper  = tonumber(stdnse.get_script_args("maxper"))  or 0
 
   local index = load_index()
   local best = {}
@@ -256,9 +256,14 @@ action = function(host, port)
     return a.cvss > b.cvss
   end)
 
+  -- If maxper == 0, treat as unlimited
+if maxper > 0 then
   while #result.findings > maxper do
     table.remove(result.findings)
   end
+end
+
 
   return result
 end
+
