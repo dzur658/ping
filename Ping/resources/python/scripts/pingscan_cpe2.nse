@@ -14,14 +14,34 @@ Features:
 - Partial vendor/product matching
 - Vendor CVEs prioritized
 - Linux kernel CVEs shown only if no vendor matches
+- Keeps highest CVSS score per CVE
+- Includes severity rating in XML output
 ]]
 
-author = "PingScan Advanced Edition"
-license = "Same as Nmap"
+author = "Jared Volle"
+license = "Nmap"
 categories = {"vuln","safe"}
 
 portrule = function(host, port)
   return port.version and port.version.cpe
+end
+
+------------------------------------------------------------
+-- SEVERITY MAPPING (CVSS v3.1 Standard)
+------------------------------------------------------------
+
+local function get_severity(cvss)
+  if not cvss or cvss == 0 then
+    return "None"
+  elseif cvss < 4.0 then
+    return "Low"
+  elseif cvss < 7.0 then
+    return "Medium"
+  elseif cvss < 9.0 then
+    return "High"
+  else
+    return "Critical"
+  end
 end
 
 ------------------------------------------------------------
@@ -48,11 +68,9 @@ end
 
 local function version_in_range(version, start_v, end_v)
   if not version then return true end
-
   local v = normalize(version)
   local s = start_v and normalize(start_v)
   local e = end_v and normalize(end_v)
-
   if s and cmp(v,s) < 0 then return false end
   if e and cmp(v,e) > 0 then return false end
   return true
@@ -63,7 +81,6 @@ end
 ------------------------------------------------------------
 
 local function load_index()
-
   if nmap.registry.pingscan_index then
     return nmap.registry.pingscan_index
   end
@@ -116,7 +133,6 @@ end
 ------------------------------------------------------------
 
 local function parse_cpe(cpe)
-
   local cpetype,vendor,product,version =
     cpe:match("cpe:2%.3:([aoh]):([^:]+):([^:]+):([^:]+)")
 
@@ -146,7 +162,6 @@ end
 ------------------------------------------------------------
 
 local function collect_os_cpes(host)
-
   local os_cpes = {}
 
   if host.os and host.os.osmatches then
@@ -172,43 +187,37 @@ end
 
 action = function(host, port)
 
-  local mincvss = tonumber(stdnse.get_script_args("mincvss")) or 0
-  local minyear = tonumber(stdnse.get_script_args("minyear")) or 0
-  local maxper  = tonumber(stdnse.get_script_args("maxper"))  or 25
+  local mincvss = tonumber(stdnse.get_script_args("mincvss")) or 5.0
+  local minyear = tonumber(stdnse.get_script_args("minyear")) or 2016
+  local maxper  = tonumber(stdnse.get_script_args("maxper"))  or 20
 
   local index = load_index()
-
-  local vendor_findings = {}
-  local os_findings = {}
-  local seen = {}
+  local best = {}
 
   ------------------------------------------------------------
-  -- 1) SERVICE CPE MATCHING
+  -- MATCHING FUNCTION
   ------------------------------------------------------------
 
-  for _, cpe in ipairs(port.version.cpe or {}) do
+  local function process_cpe_list(cpe_list)
+    for _, cpe in ipairs(cpe_list or {}) do
 
-    local cpetype, vendor, product, version = parse_cpe(cpe)
+      local cpetype, vendor, product, version = parse_cpe(cpe)
 
-    if vendor and index[vendor] then
+      if vendor and index[vendor] then
+        for csv_product, entries in pairs(index[vendor]) do
+          if partial_match(product, csv_product) then
+            for _, entry in ipairs(entries) do
 
-      for csv_product, entries in pairs(index[vendor]) do
+              if entry.cvss >= mincvss and
+                 entry.year >= minyear and
+                 version_in_range(version, entry.start_v, entry.end_v) then
 
-        if partial_match(product, csv_product) then
+                local existing = best[entry.id]
 
-          for _, entry in ipairs(entries) do
-            if entry.cvss >= mincvss and
-               entry.year >= minyear and
-               version_in_range(version, entry.start_v, entry.end_v) then
-
-              if not seen[entry.id] then
-                seen[entry.id] = true
-
-                if vendor == "linux" and cpetype == "o" then
-                  os_findings[#os_findings+1] = entry
-                else
-                  vendor_findings[#vendor_findings+1] = entry
+                if not existing or entry.cvss > existing.cvss then
+                  best[entry.id] = entry
                 end
+
               end
             end
           end
@@ -217,66 +226,39 @@ action = function(host, port)
     end
   end
 
+  -- Service matching
+  process_cpe_list(port.version.cpe)
+
+  -- OS matching
+  process_cpe_list(collect_os_cpes(host))
+
   ------------------------------------------------------------
-  -- 2) HOST OS CPE MATCHING
+  -- BUILD FINAL RESULT
   ------------------------------------------------------------
 
-  local os_cpes = collect_os_cpes(host)
+  local result = { findings = {} }
 
-  for _, cpe in ipairs(os_cpes) do
-
-    local cpetype, vendor, product, version = parse_cpe(cpe)
-
-    if vendor and index[vendor] then
-
-      for csv_product, entries in pairs(index[vendor]) do
-
-        if partial_match(product, csv_product) then
-
-          for _, entry in ipairs(entries) do
-            if entry.cvss >= mincvss and
-               entry.year >= minyear and
-               version_in_range(version, entry.start_v, entry.end_v) then
-
-              if not seen[entry.id] then
-                seen[entry.id] = true
-                os_findings[#os_findings+1] = entry
-              end
-            end
-          end
-        end
-      end
-    end
+  for _, entry in pairs(best) do
+    table.insert(result.findings, {
+      cveid       = entry.id,
+      cvss        = entry.cvss,
+      severity    = get_severity(entry.cvss),
+      description = entry.summary,
+      year        = entry.year
+    })
   end
 
-  ------------------------------------------------------------
-  -- PRIORITY LOGIC
-  ------------------------------------------------------------
-
-  local findings
-
-  if #vendor_findings > 0 then
-    findings = vendor_findings
-  else
-    findings = os_findings
+  if #result.findings == 0 then
+    return nil
   end
 
-  if #findings == 0 then return nil end
-
-  table.sort(findings,function(a,b)
+  table.sort(result.findings, function(a,b)
     return a.cvss > b.cvss
   end)
 
-  local out = {}
-  table.insert(out,
-    string.format("PingScan: %d CVE(s) matched", math.min(#findings,maxper)))
-
-  for i=1, math.min(#findings,maxper) do
-    local f = findings[i]
-    table.insert(out,
-      string.format("  %s | CVSS %.1f | %s",
-        f.id, f.cvss, f.summary))
+  while #result.findings > maxper do
+    table.remove(result.findings)
   end
 
-  return stdnse.format_output(true,out)
+  return result
 end
