@@ -72,7 +72,7 @@ async function createModelContext(modelPath) {
   const llama = await getLlama();
   activeModel = await llama.loadModel({ modelPath });
   activeContext = await activeModel.createContext({
-    contextSize: "auto",
+    contextSize: 8192,
     threads: 0,
   });
 
@@ -199,6 +199,8 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
       });
 
       const {session, sequence} = await createDeviceIDScanSession(deviceIDModelContext, systemPrompt);
+      let deviceContextParts = [``];
+      deviceContextParts.push(renderedPrompt);
 
       try {
         const reply = await session.prompt(renderedPrompt, {
@@ -236,10 +238,12 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
             `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
           }
         } else {
+          deviceContextParts.push(reply)
+          const combinedContext = deviceContextParts.join('\n\n').trim()
           db.prepare(`
             INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
             VALUES (?, ?, ?, ?)
-          `).run(device.hostId, "device-identification", reply, timestamp)
+          `).run(device.hostId, "device-identification", combinedContext, timestamp)
         }
 
       } finally {
@@ -257,9 +261,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
 
-  async function handleAskFollowup(event, ...args) {
-
-  }
+  
   let modelPath;
   let systemPrompt;
 
@@ -276,7 +278,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
       3. END with EXACTLY ONE of the following tags:
 
       [OPTION 1: IDENTIFIED]
-      If you are 90% certain of the specific model:
+      If you are 70% certain of the specific model:
       <device>Exact Model Name</device>
 
       [OPTION 2: AMBIGUOUS]
@@ -329,6 +331,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
   const context = await createModelContext(modelPath);
 
   let activeData = deviceSessions.get(deviceName)
+  let modelResponseParts;
 
   if (!activeData) {
     console.log(`Creating new session for ${deviceName}`);
@@ -339,17 +342,32 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
       systemPrompt: systemPrompt
     });
 
-    const modelResponseParts = [`
-        <think>
-        Trigger: System Command received ("Load reference for ${deviceName}").
-        Action: Retrieve knowledge base.
-        Plan: Context loaded.
-        </think>
-      `
-    ]
+    if (modelName === "deviceIdModel") {
+      modelResponseParts = [`
+          <think>
+          Trigger: System Command received ("Load reference for ${deviceName}").
+          Action: Retrieve device information.
+          Plan: Context loaded.
+          </think>
+        `
+      ]
 
-    if (historyContent) {
-      modelResponseParts.push(historyContent)
+      if (historyContent) {
+        modelResponseParts.push(historyContent)
+      }
+    } else {
+      modelResponseParts = [`
+          <think>
+          Trigger: System Command received ("Load reference for ${deviceName}").
+          Action: Retrieve knowledge base.
+          Plan: Context loaded.
+          </think>
+        `
+      ]
+
+      if (historyContent) {
+        modelResponseParts.push(historyContent)
+      }
     }
 
     const history: ChatHistoryItem[] = [
