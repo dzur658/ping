@@ -37,6 +37,6 @@ interface Window {
     onProcessScanStatus(callback: (status: ScanStatus) => void): () => void;
     onLog(callback: (message: string) => void): () => void;
 
-    onRefreshData(callback: (command: DBCommand) => void): () => void;
+    onRefreshData(callback: (message: string) => void): () => void;
   };
 }

@@ -33,7 +33,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         const userMessage = chatInput;
         const deviceName = selectedDeviceName;
         const selectedDeviceId = currentDevice.hostId;
-        const isInitialReply = chatMessages.length === 1 && chatMessages[0].role === "assistant";
+        const isInitialReply = chatMessages.length <= 1;
 
         setChatMessages(prev => [
             ...prev,
@@ -169,9 +169,9 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         if (pendingQuestion && pendingQuestion.content) {
             const cleanQuestion = pendingQuestion.content
-                .replace(/<think>[\s\S]*?<\/think>/g, "")
-                .replace(/<question>|<\/question>/g, "")
-                .trim();
+                // .replace(/<think>[\s\S]*?<\/think>/g, "")
+                // .replace(/<question>|<\/question>/g, "")
+                // .trim();
 
             setChatMessages([
                 {
@@ -183,6 +183,39 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
             setChatMessages([]);
         }
     }, [selectedDevice, recommendations]);
+
+    const refreshAllData = async () => {
+        if (!filePathEffective || !scanIdEffective) return;
+
+        const deviceList: Device[] = await window.electronAPI.getDevices(filePathEffective, scanIdEffective);
+        setDevices(deviceList);
+
+        if (selectedDevice) {
+            const recommendationList: Recommendation[] = await window.electronAPI.getDeviceRecommendations(
+                filePathEffective,
+                scanIdEffective,
+                selectedDevice
+            );
+            setRecommendations(recommendationList)
+        } else if (deviceList.length > 0) {
+            setSelectedDevice(deviceList[0].ipAddress)
+        }
+    };
+
+    useEffect(() => {
+        refreshAllData();
+    }, [filePathEffective, scanIdEffective, selectedDevice]);
+
+    useEffect(() => {
+        const unsubDB = window.electronAPI.onRefreshData(() => {
+            console.log("Database update detected, refreshing UI");
+            refreshAllData();
+        });
+
+        return () => {
+            if (unsubDB) unsubDB();
+        }
+    }, [selectedDevice, filePathEffective, scanIdEffective]);
 
     const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
         ? (() => {

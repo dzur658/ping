@@ -202,11 +202,8 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
 
       try {
         const reply = await session.prompt(renderedPrompt, {
-          temperature: 0,
-          topK: 1,
-          repeatPenalty: {
-            penalty: 1.0,
-          }
+          temperature: 0.3,
+          topK: 40,
         });
 
         let deviceKnowledgeRow;
@@ -259,6 +256,10 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
 ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceId, modelName, historyContent?) =>{
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
+
+  async function handleAskFollowup(event, ...args) {
+
+  }
   let modelPath;
   let systemPrompt;
 
@@ -369,7 +370,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
 
   try {
     const reply = await activeData.session.prompt(question, {
-      temperature: 0.7,
+      temperature: 0.3,
       topK: 40,
     });
 
@@ -403,7 +404,10 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
             INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
             VALUES (?, ?, ?, ?)
           `).run(deviceId, "device-summary", knowledgeContent, timestamp)
-          
+          sendStatus("db:refresh", {
+            phase: "Database refresh",
+            message: "Refreshing db results"
+          });
         }
     } else {
       console.log("Not ID'd")

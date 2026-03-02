@@ -37,7 +37,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   onRefreshData: (cb) => {
-    const listener = (_event: unknown, data: unknown) => cb(data);
+    const listener = (_event: unknown, msg: unknown) => cb(msg);
     ipcRenderer.on("db:refresh", listener)
     return () => ipcRenderer.removeListener("db:refresh", listener)
   },
