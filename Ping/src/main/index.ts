@@ -278,7 +278,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
       3. END with EXACTLY ONE of the following tags:
 
       [OPTION 1: IDENTIFIED]
-      If you are 70% certain of the specific model:
+      If you are 90% certain of the specific model:
       <device>Exact Model Name</device>
 
       [OPTION 2: AMBIGUOUS]

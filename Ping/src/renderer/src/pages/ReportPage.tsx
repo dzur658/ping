@@ -5,6 +5,7 @@ import Split from "react-split"
 import BackButton from "@renderer/components/BackButton";
 import DeviceMenu from "@renderer/components/DeviceMenu";
 import RecommendationChoice from "@renderer/components/RecommendationChoice";
+import MarkdownRenderer from "@renderer/components/MarkdownRenderer";
 
 interface ReportPageProps {
   filePath: string | null;
@@ -169,9 +170,9 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         if (pendingQuestion && pendingQuestion.content) {
             const cleanQuestion = pendingQuestion.content
-                // .replace(/<think>[\s\S]*?<\/think>/g, "")
-                // .replace(/<question>|<\/question>/g, "")
-                // .trim();
+                .replace(/<think>[\s\S]*?<\/think>/g, "")
+                .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/, '$1')
+                .trim();
 
             setChatMessages([
                 {
@@ -550,7 +551,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                 }}
                             >
                                 <strong>{msg.role === "assistant" ? "Ping" : "You"}:</strong>{" "}
-                                {msg.content}
+                                {<MarkdownRenderer content={msg.content} />}
                             </Typography>
                             ))}
 
