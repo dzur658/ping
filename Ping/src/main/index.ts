@@ -63,6 +63,7 @@ async function createModelContext(modelPath) {
 
   if (activeContext) {
     console.log("Cleaning up RAM before switching models...");
+    deviceSessions.clear()
     await activeContext.dispose();
     activeContext = null;
     activeModel = null;
@@ -118,70 +119,6 @@ function extractTaggedValue(text: string) {
 
   return null;
 }
-
-ipcMain.handle("llama:askPing", async (_event, question: string) => {
-  const systemPrompt = `
-    You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
-
-    Key guidelines:
-    - Be friendly and supportive
-    - Explain things in simple, clear language
-    - Avoid technical jargon when possible
-    - If a user seems confused, break down instructions into smaller steps
-    - Be patient with users who are less tech-savvy
-    - Acknowledge their frustration and reassure them
-    - Provide step-by-step instructions when needed
-    - Be encouraging throughout conversation
-    - Never make the user feel stupid for asking basic questions
-    - If you're not sure about something, be honest
-    - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
-    - Never mention the specific date or year
-
-    Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
-
-    IMPORTANT: You must always output your internal reasoning before your response.
-    Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
-    NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
-
-    Example of GOOD reasoning:
-    "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
-
-    Example of BAD reasoning:
-    "I am thinking about their request. Let me consider what to say."
-
-    Use the following format:
-
-
-    [Your actual response to the user follows here]
-
-    Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
-  `
-  // const fakeAssistantPrompt = `
-  // <think>
-  // Trigger: System Command received ("Load reference for ${device_str}").
-  // Action: Retrieve "${device_str} Update Guide" from database.
-  // Plan: Output the full update instructions so the user has the context available immediately.
-  // </think>"
-  // ${knowledge_base_doc}
-  // `
-  // const context = await createModelContext(technicalAssistantModelPath)
-  const context = await createModelContext(deviceIDModelPath)
-  const {session, sequence} = await createTechnicalAssistantSession(context, systemPrompt);
-
-  try {
-    const reply = await session.prompt(question, {
-      temperature: 0,
-      topK: 1,
-      repeatPenalty: {
-        penalty: 1.0,
-      }
-    });
-
-    return reply;
-  } finally {
-    sequence.dispose();
-  }
-});
 
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
@@ -319,17 +256,15 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   }
 });
 
-ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceId, historyContent?) =>{
-  console.log(historyContent)
+ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceId, modelName, historyContent?) =>{
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
-  const context = await createModelContext(deviceIDModelPath);
+  let modelPath;
+  let systemPrompt;
 
-  let activeData = deviceSessions.get(deviceName)
-
-  if (!activeData) {
-    console.log(`Creating new session for ${deviceName}`);
-    const systemPrompt = `
+  if (modelName === "deviceIdModel") {
+    modelPath = deviceIDModelPath
+    systemPrompt = `
       You are an expert network diagnostic assistant helping home users identify devices on their network.
 
       Given Nmap scan data, your goal is to identify the SPECIFIC device model.
@@ -350,12 +285,71 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
       CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
       - NEVER output plain text outside of tags.
     `
+  } else {
+    modelPath = technicalAssistantModelPath
+    systemPrompt = `
+      You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
 
+      Key guidelines:
+      - Be friendly and supportive
+      - Explain things in simple, clear language
+      - Avoid technical jargon when possible
+      - If a user seems confused, break down instructions into smaller steps
+      - Be patient with users who are less tech-savvy
+      - Acknowledge their frustration and reassure them
+      - Provide step-by-step instructions when needed
+      - Be encouraging throughout conversation
+      - Never make the user feel stupid for asking basic questions
+      - If you're not sure about something, be honest
+      - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
+      - Never mention the specific date or year
+
+      Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
+
+      IMPORTANT: You must always output your internal reasoning before your response.
+      Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
+      NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
+
+      Example of GOOD reasoning:
+      "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
+
+      Example of BAD reasoning:
+      "I am thinking about their request. Let me consider what to say."
+
+      Use the following format:
+
+
+      [Your actual response to the user follows here]
+
+      Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
+    `
+  }
+
+  const context = await createModelContext(modelPath);
+
+  let activeData = deviceSessions.get(deviceName)
+
+  if (!activeData) {
+    console.log(`Creating new session for ${deviceName}`);
+  
     const sequence = context.getSequence();
     const session = new LlamaChatSession({
       contextSequence: sequence,
       systemPrompt: systemPrompt
     });
+
+    const modelResponseParts = [`
+        <think>
+        Trigger: System Command received ("Load reference for ${deviceName}").
+        Action: Retrieve knowledge base.
+        Plan: Context loaded.
+        </think>
+      `
+    ]
+
+    if (historyContent) {
+      modelResponseParts.push(historyContent)
+    }
 
     const history: ChatHistoryItem[] = [
       {
@@ -364,19 +358,8 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
       },
       {
         type: "model",
-        response: [`
-          <think>
-          Trigger: System Command received ("Load reference for ${deviceName}").
-          Action: Retrieve knowledge base.
-          Plan: Context loaded.
-          </think>
-          (Context from database included here...)
-        `]
-      },
-      {
-        type: "model",
-        response: [historyContent]
-      },
+        response: modelResponseParts
+      }
     ];
 
     session.setChatHistory(history);
@@ -391,7 +374,6 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
     });
 
     let deviceKnowledgeRow
-    console.log(reply)
 
     const timestamp = Math.floor(Date.now() / 1000);
     const extractedTagValue = extractTaggedValue(reply);

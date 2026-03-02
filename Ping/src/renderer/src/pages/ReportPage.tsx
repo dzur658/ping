@@ -33,7 +33,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         const userMessage = chatInput;
         const deviceName = selectedDeviceName;
         const selectedDeviceId = currentDevice.hostId;
-        const isInitialFollowup = chatMessages.length === 1 && chatMessages[0].role === "assistant";
+        const isInitialReply = chatMessages.length === 1 && chatMessages[0].role === "assistant";
 
         setChatMessages(prev => [
             ...prev,
@@ -45,29 +45,54 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         try {
             const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
-            console.log(pendingQuestion?.content)
+            const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-summary");
+            // console.log(pendingQuestion?.content)
+            //console.log(updateRecommendation?.content)
             let reply;
             if (pendingQuestion) {
-                if (isInitialFollowup) {
+                const historyContent = pendingQuestion.content ?? "";
+                if (isInitialReply && historyContent) {
                         const question = userMessage
-                        const historyContent = pendingQuestion.content ?? "";
+                        const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
                         deviceName,
                         selectedDeviceId,
+                        modelName,
                         historyContent
                     );
                 } else {
                     const question = userMessage
+                    const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
                         deviceName,
-                        selectedDeviceId
+                        selectedDeviceId,
+                        modelName,
                     );
                 }
-            } 
-            else {
-                reply = await window.electronAPI.askPing(userMessage);
+            } else if (updateRecommendation) {
+                const historyContent = updateRecommendation?.content ?? "";
+                if (isInitialReply && historyContent) {
+                    const question = userMessage
+                    const modelName = "technicalAssistantModel"
+                    reply = await window.electronAPI.askFollowup(
+                        question,
+                        deviceName,
+                        selectedDeviceId,
+                        modelName,
+                        historyContent
+                    );
+                } else {
+                    const question = userMessage
+                    const modelName = "technicalAssistantModel"
+                    reply = await window.electronAPI.askFollowup(
+                        question,
+                        deviceName,
+                        selectedDeviceId,
+                        modelName,
+                    );
+                }
             }
 
             setChatMessages(prev => [
