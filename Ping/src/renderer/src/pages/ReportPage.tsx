@@ -27,7 +27,13 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     async function sendAskPing() {
         if (!chatInput.trim() || chatLoading) return;
 
+        const currentDevice = devices.find(device => device.ipAddress === selectedDevice);
+        if (!currentDevice) return;
+
         const userMessage = chatInput;
+        const deviceName = selectedDeviceName;
+        const selectedDeviceId = currentDevice.hostId;
+        const isInitialFollowup = chatMessages.length === 1 && chatMessages[0].role === "assistant";
 
         setChatMessages(prev => [
             ...prev,
@@ -39,17 +45,28 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         try {
             const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
+            console.log(pendingQuestion?.content)
             let reply;
-            if (pendingQuestion && chatMessages.length === 0) {
+            if (pendingQuestion) {
+                if (isInitialFollowup) {
+                        const question = userMessage
+                        const historyContent = pendingQuestion.content ?? "";
+                    reply = await window.electronAPI.askFollowup(
+                        question,
+                        deviceName,
+                        selectedDeviceId,
+                        historyContent
+                    );
+                } else {
                     const question = userMessage
-                    const historyContent = pendingQuestion.content ?? "";
-                    const deviceName = selectedDeviceName
-                reply = await window.electronAPI.askFollowup(
-                    question,
-                    historyContent,
-                    deviceName
-                );
-            } else {
+                    reply = await window.electronAPI.askFollowup(
+                        question,
+                        deviceName,
+                        selectedDeviceId
+                    );
+                }
+            } 
+            else {
                 reply = await window.electronAPI.askPing(userMessage);
             }
 
@@ -72,13 +89,14 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
     interface Device {
         ipAddress: string;
+        hostId: string;
         hostnames: string | null;
         interType: string;
     }
 
     interface Recommendation {
         interType: string;
-        content: string | null;
+        content: string;
     }
 
     //const [data, setData] = useState<any[]>([]);

@@ -27,6 +27,7 @@ async function loadLLMImports() {
 let activeContext: any = null;
 let activeModel: any = null;
 let currentLoadedPath: any = null;
+const deviceSessions = new Map<string, {session: any, sequence: any}>();
 
 async function ensureDeviceIDModelDownloaded() {
   const modelPath  = await downloadFileToCacheDir({
@@ -271,7 +272,7 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
           }
         });
 
-        let deviceKnowledgeRow
+        let deviceKnowledgeRow;
 
         const timestamp = Math.floor(Date.now() / 1000);
         const extractedTagValue = extractTaggedValue(reply);
@@ -284,7 +285,7 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
 
           try {
             const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
-              SELECT knowledge
+              SELECT documentation
               FROM knowledge
               WHERE device_name = ?
             `)
@@ -296,13 +297,13 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
           if (deviceKnowledgeRow) {
             const knowledgeContent = deviceKnowledgeRow.knowledge
             db.prepare(`
-              INSERT INTO llm (hostId, interType, content, timestamp)
+              INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
               VALUES (?, ?, ?, ?)
             `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
           }
         } else {
           db.prepare(`
-            INSERT INTO llm (hostId, interType, content, timestamp)
+            INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
             VALUES (?, ?, ?, ?)
           `).run(device.hostId, "device-identification", reply, timestamp)
         }
@@ -318,70 +319,121 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   }
 });
 
-ipcMain.handle("llama:askFollowup", async (_event, question, historyContent, deviceName) =>{
+ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceId, historyContent?) =>{
+  console.log(historyContent)
+  const dbPath = path.join(app.getPath("userData"), "networkscans.db");
+  const db = new Database(dbPath);
   const context = await createModelContext(deviceIDModelPath);
-  const sequence = context.getSequence();
-  const systemPrompt = `
-    You are an expert network diagnostic assistant helping home users identify devices on their network.
 
-    Given Nmap scan data, your goal is to identify the SPECIFIC device model.
+  let activeData = deviceSessions.get(deviceName)
 
-    CORE PROTOCOL:
-    1. START with a <think> block to analyze the data.
-    2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
-    3. END with EXACTLY ONE of the following tags:
+  if (!activeData) {
+    console.log(`Creating new session for ${deviceName}`);
+    const systemPrompt = `
+      You are an expert network diagnostic assistant helping home users identify devices on their network.
 
-    [OPTION 1: IDENTIFIED]
-    If you are 90% certain of the specific model:
-    <device>Exact Model Name</device>
+      Given Nmap scan data, your goal is to identify the SPECIFIC device model.
 
-    [OPTION 2: AMBIGUOUS]
-    If you are NOT certain or need user confirmation:
-    <question>The clarifying question you want to ask the user</question>
+      CORE PROTOCOL:
+      1. START with a <think> block to analyze the data.
+      2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
+      3. END with EXACTLY ONE of the following tags:
 
-    CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
-    - NEVER output plain text outside of tags.
-  `
+      [OPTION 1: IDENTIFIED]
+      If you are 90% certain of the specific model:
+      <device>Exact Model Name</device>
 
-  const session = new LlamaChatSession({
-    contextSequence: sequence,
-    systemPrompt: systemPrompt
-  });
+      [OPTION 2: AMBIGUOUS]
+      If you are NOT certain or need user confirmation:
+      <question>The clarifying question you want to ask the user</question>
 
-  const history: ChatHistoryItem[] = [
-    {
-      type: "user",
-      text: `[System Command]: Load reference for ${deviceName}`
-    },
-    {
-      type: "model",
-      response: [`
-        <think>
-        Trigger: System Command received ("Load reference for ${deviceName}").
-        Action: Retrieve knowledge base.
-        Plan: Context loaded.
-        </think>
-        (Context from database included here...)
-      `]
-    },
-    {
-      type: "model",
-      response: [historyContent]
-    },
-  ];
+      CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
+      - NEVER output plain text outside of tags.
+    `
 
-  session.setChatHistory(history);
+    const sequence = context.getSequence();
+    const session = new LlamaChatSession({
+      contextSequence: sequence,
+      systemPrompt: systemPrompt
+    });
+
+    const history: ChatHistoryItem[] = [
+      {
+        type: "user",
+        text: `[System Command]: Load reference for ${deviceName}`
+      },
+      {
+        type: "model",
+        response: [`
+          <think>
+          Trigger: System Command received ("Load reference for ${deviceName}").
+          Action: Retrieve knowledge base.
+          Plan: Context loaded.
+          </think>
+          (Context from database included here...)
+        `]
+      },
+      {
+        type: "model",
+        response: [historyContent]
+      },
+    ];
+
+    session.setChatHistory(history);
+    activeData = {session, sequence}
+    deviceSessions.set(deviceName, activeData)
+  }
 
   try {
-    const reply = await session.prompt(question, {
+    const reply = await activeData.session.prompt(question, {
       temperature: 0.7,
       topK: 40,
     });
+
+    let deviceKnowledgeRow
+    console.log(reply)
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const extractedTagValue = extractTaggedValue(reply);
+
+    if (extractedTagValue?.type === "device") {
+      console.log(extractedTagValue.value)
+      const knowledgeBasePath = app.isPackaged
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
+        : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
+      const knowledgeBaseDB = new Database(knowledgeBasePath)
+
+      try {
+          const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
+            SELECT documentation
+            FROM knowledge
+            WHERE device_name = ?
+          `)
+          deviceKnowledgeRow = deviceKnowledgeQuery.get(extractedTagValue.value);
+        } finally {
+          knowledgeBaseDB.close();
+        }
+
+        if (deviceKnowledgeRow) {
+          const knowledgeContent = deviceKnowledgeRow.documentation
+          db.prepare('DELETE FROM llm WHERE hostId = ?').run(deviceId);
+          db.prepare(`
+            INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
+            VALUES (?, ?, ?, ?)
+          `).run(deviceId, "device-summary", knowledgeContent, timestamp)
+          
+        }
+    } else {
+      console.log("Not ID'd")
+    }
+
     return reply;
-  } finally {
-    sequence.dispose()
+  } catch (error) {
+    console.error("Session prompt failed", error);
+    deviceSessions.delete(deviceName);
+    throw error;
   }
-})
+});
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -412,7 +464,7 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   const db = new Database(filePath);
   try {
     const allDevicesStatement = db.prepare(`
-      SELECT hosts.ipAddress,hosts.hostnames,llm.interType
+      SELECT hosts.ipAddress,hosts.hostnames,hosts.hostId,llm.interType
       FROM hosts
       JOIN llm ON hosts.hostId = llm.hostId
       WHERE scanId = ?

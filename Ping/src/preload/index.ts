@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, scanId, selectedDevice),
   
   askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question),
-  askFollowup: (question: string, historyContent: string, deviceName: string) => ipcRenderer.invoke("llama:askFollowup", question, historyContent, deviceName),
+  askFollowup: (question: string, deviceName: string, deviceId: string, historyContent?: string) => ipcRenderer.invoke("llama:askFollowup", question, deviceName, deviceId, historyContent),
   analyzeScanDevices: (scanId: string) => ipcRenderer.invoke("llama:analyzeScanDevices", scanId),
 
   scanLocalDevice: () => ipcRenderer.invoke("nmap:scanLocalDevice"),
@@ -34,5 +34,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     const listener = (_event: unknown, msg: string) => cb(msg);
     ipcRenderer.on("nmap:log", listener)
     return () => ipcRenderer.removeListener("nmap:log", listener);
-  }
+  },
+
+  onRefreshData: (cb) => {
+    const listener = (_event: unknown, data: unknown) => cb(data);
+    ipcRenderer.on("db:refresh", listener)
+    return () => ipcRenderer.removeListener("db:refresh", listener)
+  },
 })
