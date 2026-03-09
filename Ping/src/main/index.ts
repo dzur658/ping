@@ -4,7 +4,7 @@ import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
-import {spawn} from "child_process"
+import {ChildProcess, spawn} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
@@ -12,10 +12,29 @@ import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
 import { ChatHistoryItem } from 'node-llama-cpp'
 
+let llamaServerProcess: ChildProcess;
 let getLlama: typeof import("node-llama-cpp").getLlama;
 let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
 let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
+
+async function startLlamaServer(modelPath: string) {
+  const serverExe = app.isPackaged
+  ? path.join(process.resourcesPath, 'llama-cpp', 'llama-server.exe')
+  : path.join(app.getAppPath(), 'resources', 'llama-cpp', 'llama-server.exe');
+
+  llamaServerProcess = spawn(serverExe, [
+    '--model', modelPath,
+    '--port', '3500',
+    '--ctx-size', '8192'
+  ]);
+
+  llamaServerProcess.stdout?.on('data', (data) => {
+    if (data.toString().includes('HTTP server listening')) {
+      console.log("Llama Server is ready");
+    }
+  })
+}
 
 async function loadLLMImports() {
   const llamaCpp = await import("node-llama-cpp");
@@ -260,7 +279,6 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceI
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
 
-  
   let modelPath;
   let systemPrompt;
 
