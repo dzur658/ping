@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, systemPreferences } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -10,8 +10,7 @@ import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
-import { ModelTraining } from '@mui/icons-material'
-import { ChatHistoryItem, LlamaChat } from 'node-llama-cpp'
+import { ChatHistoryItem } from 'node-llama-cpp'
 
 let getLlama: typeof import("node-llama-cpp").getLlama;
 let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
@@ -80,15 +79,15 @@ async function createModelContext(modelPath) {
   return activeContext;
 }
 
-async function createTechnicalAssistantSession(context, systemPrompt: string) {
-  const sequence = context.getSequence();
-  const session = new LlamaChatSession({
-      contextSequence: sequence,
-      systemPrompt: systemPrompt
-    });
+// async function createTechnicalAssistantSession(context, systemPrompt: string) {
+//   const sequence = context.getSequence();
+//   const session = new LlamaChatSession({
+//       contextSequence: sequence,
+//       systemPrompt: systemPrompt
+//     });
     
-  return {session, sequence}
-}
+//   return {session, sequence}
+// }
 
 async function createDeviceIDScanSession(context, systemPrompt: string) {
   const sequence = context.getSequence();
