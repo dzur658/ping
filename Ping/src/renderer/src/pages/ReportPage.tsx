@@ -57,19 +57,14 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
-                        deviceName,
                         selectedDeviceId,
-                        modelName,
-                        historyContent
                     );
                 } else {
                     const question = userMessage
                     const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
-                        deviceName,
                         selectedDeviceId,
-                        modelName,
                     );
                 }
             } else if (updateRecommendation) {
@@ -79,19 +74,14 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                     const modelName = "technicalAssistantModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
-                        deviceName,
                         selectedDeviceId,
-                        modelName,
-                        historyContent
                     );
                 } else {
                     const question = userMessage
                     const modelName = "technicalAssistantModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
-                        deviceName,
                         selectedDeviceId,
-                        modelName,
                     );
                 }
             }

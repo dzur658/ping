@@ -4,48 +4,67 @@ import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
-import {ChildProcess, spawn} from "child_process"
+import {spawn} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
-import { ChatHistoryItem } from 'node-llama-cpp'
 
-let llamaServerProcess: ChildProcess;
-let getLlama: typeof import("node-llama-cpp").getLlama;
-let LlamaChatSession: typeof import("node-llama-cpp").LlamaChatSession;
+let llamaServerProcess: any = null;
+let currentModelPath: string | null  = null;
 let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
 
-async function startLlamaServer(modelPath: string) {
-  const serverExe = app.isPackaged
-  ? path.join(process.resourcesPath, 'llama-cpp', 'llama-server.exe')
-  : path.join(app.getAppPath(), 'resources', 'llama-cpp', 'llama-server.exe');
+async function switchModel(modelPath: string) {
+  if (currentModelPath === modelPath && llamaServerProcess) {
+    return;
+  }
 
-  llamaServerProcess = spawn(serverExe, [
-    '--model', modelPath,
-    '--port', '3500',
-    '--ctx-size', '8192'
-  ]);
+  if (llamaServerProcess) {
+    console.log("Killing old Llama server...");
+    llamaServerProcess.kill();
+    llamaServerProcess = null;
+  }
 
-  llamaServerProcess.stdout?.on('data', (data) => {
-    if (data.toString().includes('HTTP server listening')) {
-      console.log("Llama Server is ready");
-    }
-  })
+  const totalRamGB = os.totalmem() / (1024 ** 3)
+  const totalCores = os.cpus().length;
+  const threadsToUse = Math.max(1, Math.floor(totalCores / 2))
+  const ctxSize = totalRamGB < 8 ? 1024 : 2048
+  const ubatchSize = totalCores <= 4? 8 : 16
+
+  return new Promise((resolve, reject) => {
+    const serverExe = app.isPackaged
+    ? path.join(process.resourcesPath, 'llama-cpp', 'llama-server.exe')
+    : path.join(app.getAppPath(), 'resources', 'llama-cpp', 'llama-server.exe');
+
+    llamaServerProcess = spawn(serverExe, [
+      '--model', modelPath,
+      '--port', '3500',
+      '--threads', '4',
+      '--ubatch-size', String(ubatchSize),
+      '--ctx-size', String(ctxSize),
+      '--no-mmap',
+      '--parallel', '1'
+    ], {
+      windowsHide: true,
+      detached: false,
+    });
+
+    llamaServerProcess.stderr?.on('data', (data: Buffer) => {
+      const log = data.toString();
+      console.log(log);
+
+      if (log.includes('HTTP server listening')) {
+        currentModelPath = modelPath;
+        console.log("Llama Server is ready on port 3500");
+        resolve(true)
+      }
+    });
+
+    llamaServerProcess.on('error', (err: any) => reject(err));
+  });
 }
-
-async function loadLLMImports() {
-  const llamaCpp = await import("node-llama-cpp");
-  getLlama = llamaCpp.getLlama;
-  LlamaChatSession = llamaCpp.LlamaChatSession;
-}
-
-let activeContext: any = null;
-let activeModel: any = null;
-let currentLoadedPath: any = null;
-const deviceSessions = new Map<string, {session: any, sequence: any}>();
 
 async function ensureDeviceIDModelDownloaded() {
   const modelPath  = await downloadFileToCacheDir({
@@ -74,50 +93,6 @@ async function initModels() {
   technicalAssistantModelPath = await ensureTechnicalAssistantModelDownloaded();
 }
 
-async function createModelContext(modelPath) {
-  if (currentLoadedPath === modelPath && activeContext) {
-    return activeContext
-  }
-
-  if (activeContext) {
-    console.log("Cleaning up RAM before switching models...");
-    deviceSessions.clear()
-    await activeContext.dispose();
-    activeContext = null;
-    activeModel = null;
-  }
-
-  const llama = await getLlama();
-  activeModel = await llama.loadModel({ modelPath });
-  activeContext = await activeModel.createContext({
-    contextSize: 8192,
-    threads: 0,
-  });
-
-  currentLoadedPath = modelPath;
-  return activeContext;
-}
-
-// async function createTechnicalAssistantSession(context, systemPrompt: string) {
-//   const sequence = context.getSequence();
-//   const session = new LlamaChatSession({
-//       contextSequence: sequence,
-//       systemPrompt: systemPrompt
-//     });
-    
-//   return {session, sequence}
-// }
-
-async function createDeviceIDScanSession(context, systemPrompt: string) {
-  const sequence = context.getSequence();
-  const session = new LlamaChatSession({
-      contextSequence: sequence,
-      systemPrompt: systemPrompt
-    });
-    
-  return {session, sequence}
-}
-
 function extractTaggedValue(text: string) {
   const deviceTagMatch = text.match(/<device>(.*?)<\/device>/);
   if (deviceTagMatch) {
@@ -141,8 +116,11 @@ function extractTaggedValue(text: string) {
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
-  const deviceIDModelContext = await createModelContext(deviceIDModelPath)
-
+  const knowledgeBasePath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
+    : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
+  const knowledgeBaseDB = new Database(knowledgeBasePath)
+  
   const systemPrompt = `
     You are an expert network diagnostic assistant helping home users identify devices on their network.
 
@@ -216,15 +194,26 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
         services
       });
 
-      const {session, sequence} = await createDeviceIDScanSession(deviceIDModelContext, systemPrompt);
-      let deviceContextParts = [``];
-      deviceContextParts.push(renderedPrompt);
-
       try {
-        const reply = await session.prompt(renderedPrompt, {
-          temperature: 0.3,
-          topK: 40,
+        const messages = [
+          {role: "system", content: systemPrompt},
+          {role: "user", content: renderedPrompt}
+        ]
+
+        const response = await fetch("http://localhost:3500/v1/chat/completions", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            stream: false,
+            messages,
+            temperature: 0.0
+          })
         });
+
+        const data = await response.json()
+        const reply = data.choices[0].message.content;
+
+        messages.push({role: "assistant", content: reply})
 
         let deviceKnowledgeRow;
 
@@ -232,228 +221,130 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
         const extractedTagValue = extractTaggedValue(reply);
 
         if (extractedTagValue?.type === "device") {
-          const knowledgeBasePath = app.isPackaged
-            ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
-            : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
-          const knowledgeBaseDB = new Database(knowledgeBasePath)
-
-          try {
-            const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
-              SELECT documentation
-              FROM knowledge
-              WHERE device_name = ?
-            `)
-            deviceKnowledgeRow = deviceKnowledgeQuery.get(extractedTagValue.value);
-          } finally {
-            knowledgeBaseDB.close();
-          }
-
-          if (deviceKnowledgeRow) {
-            const knowledgeContent = deviceKnowledgeRow.knowledge
-            db.prepare(`
-              INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
-              VALUES (?, ?, ?, ?)
-            `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
-          }
-        } else {
-          deviceContextParts.push(reply)
-          const combinedContext = deviceContextParts.join('\n\n').trim()
-          db.prepare(`
-            INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
-            VALUES (?, ?, ?, ?)
-          `).run(device.hostId, "device-identification", combinedContext, timestamp)
-        }
-
-      } finally {
-        sequence.dispose();
-      }
-    }
-
-    return {success: true};
-  } finally {
-    db.close();
-  }
-});
-
-ipcMain.handle("llama:askFollowup", async (_event, question, deviceName, deviceId, modelName, historyContent?) =>{
-  const dbPath = path.join(app.getPath("userData"), "networkscans.db");
-  const db = new Database(dbPath);
-
-  let modelPath;
-  let systemPrompt;
-
-  if (modelName === "deviceIdModel") {
-    modelPath = deviceIDModelPath
-    systemPrompt = `
-      You are an expert network diagnostic assistant helping home users identify devices on their network.
-
-      Given Nmap scan data, your goal is to identify the SPECIFIC device model.
-
-      CORE PROTOCOL:
-      1. START with a <think> block to analyze the data.
-      2. DETERMINE if the device is specific (e.g. \"OnePlus 10 Pro\") or generic (e.g. \"OnePlus Technology\").
-      3. END with EXACTLY ONE of the following tags:
-
-      [OPTION 1: IDENTIFIED]
-      If you are 90% certain of the specific model:
-      <device>Exact Model Name</device>
-
-      [OPTION 2: AMBIGUOUS]
-      If you are NOT certain or need user confirmation:
-      <question>The clarifying question you want to ask the user</question>
-
-      CRITICAL RULES:\n- NEVER use <device> and <question> in the same response.
-      - NEVER output plain text outside of tags.
-    `
-  } else {
-    modelPath = technicalAssistantModelPath
-    systemPrompt = `
-      You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
-
-      Key guidelines:
-      - Be friendly and supportive
-      - Explain things in simple, clear language
-      - Avoid technical jargon when possible
-      - If a user seems confused, break down instructions into smaller steps
-      - Be patient with users who are less tech-savvy
-      - Acknowledge their frustration and reassure them
-      - Provide step-by-step instructions when needed
-      - Be encouraging throughout conversation
-      - Never make the user feel stupid for asking basic questions
-      - If you're not sure about something, be honest
-      - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
-      - Never mention the specific date or year
-
-      Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
-
-      IMPORTANT: You must always output your internal reasoning before your response.
-      Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
-      NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
-
-      Example of GOOD reasoning:
-      "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
-
-      Example of BAD reasoning:
-      "I am thinking about their request. Let me consider what to say."
-
-      Use the following format:
-
-
-      [Your actual response to the user follows here]
-
-      Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.
-    `
-  }
-
-  const context = await createModelContext(modelPath);
-
-  let activeData = deviceSessions.get(deviceName)
-  let modelResponseParts;
-
-  if (!activeData) {
-    console.log(`Creating new session for ${deviceName}`);
-  
-    const sequence = context.getSequence();
-    const session = new LlamaChatSession({
-      contextSequence: sequence,
-      systemPrompt: systemPrompt
-    });
-
-    if (modelName === "deviceIdModel") {
-      modelResponseParts = [`
-          <think>
-          Trigger: System Command received ("Load reference for ${deviceName}").
-          Action: Retrieve device information.
-          Plan: Context loaded.
-          </think>
-        `
-      ]
-
-      if (historyContent) {
-        modelResponseParts.push(historyContent)
-      }
-    } else {
-      modelResponseParts = [`
-          <think>
-          Trigger: System Command received ("Load reference for ${deviceName}").
-          Action: Retrieve knowledge base.
-          Plan: Context loaded.
-          </think>
-        `
-      ]
-
-      if (historyContent) {
-        modelResponseParts.push(historyContent)
-      }
-    }
-
-    const history: ChatHistoryItem[] = [
-      {
-        type: "user",
-        text: `[System Command]: Load reference for ${deviceName}`
-      },
-      {
-        type: "model",
-        response: modelResponseParts
-      }
-    ];
-
-    session.setChatHistory(history);
-    activeData = {session, sequence}
-    deviceSessions.set(deviceName, activeData)
-  }
-
-  try {
-    const reply = await activeData.session.prompt(question, {
-      temperature: 0.3,
-      topK: 40,
-    });
-
-    let deviceKnowledgeRow
-
-    const timestamp = Math.floor(Date.now() / 1000);
-    const extractedTagValue = extractTaggedValue(reply);
-
-    if (extractedTagValue?.type === "device") {
-      console.log(extractedTagValue.value)
-      const knowledgeBasePath = app.isPackaged
-        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
-        : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
-      const knowledgeBaseDB = new Database(knowledgeBasePath)
-
-      try {
           const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
             SELECT documentation
             FROM knowledge
             WHERE device_name = ?
           `)
           deviceKnowledgeRow = deviceKnowledgeQuery.get(extractedTagValue.value);
-        } finally {
-          knowledgeBaseDB.close();
-        }
+          if (deviceKnowledgeRow) {
+            const knowledgeContent = deviceKnowledgeRow.documentation
 
-        if (deviceKnowledgeRow) {
-          const knowledgeContent = deviceKnowledgeRow.documentation
-          db.prepare('DELETE FROM llm WHERE hostId = ?').run(deviceId);
+            db.prepare(`
+              UPDATE hosts
+              SET Identified = ?
+              WHERE hostId = ?
+            `).run(extractedTagValue.value, device.hostId)
+
+            db.prepare(`
+              INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
+              VALUES (?, ?, ?, ?)
+            `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
+          }
+        } else {
           db.prepare(`
             INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
             VALUES (?, ?, ?, ?)
-          `).run(deviceId, "device-summary", knowledgeContent, timestamp)
-          sendStatus("db:refresh", {
-            phase: "Database refresh",
-            message: "Refreshing db results"
-          });
+          `).run(device.hostId, "device-identification", JSON.stringify(messages), timestamp)
         }
-    } else {
-      console.log("Not ID'd")
+
+      } catch (innerError) {
+        console.error(`Failed to analyze device ${device.ipAddress}:`, innerError);
+      }
     }
 
-    return reply;
-  } catch (error) {
-    console.error("Session prompt failed", error);
-    deviceSessions.delete(deviceName);
-    throw error;
+    return {success: true};
+  } finally {
+    db.close();
+    knowledgeBaseDB.close();
   }
+});
+
+ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) =>{
+  const dbPath = path.join(app.getPath("userData"), "networkscans.db");
+  const db = new Database(dbPath);
+
+  const history = db.prepare(`
+    SELECT content
+    FROM llm
+    WHERE hostId = ?  
+  `).get(deviceId)
+
+  if (!history.content) {
+    throw new Error(`No history found for device ${deviceId}`)
+  }
+
+  const messages = JSON.parse(history.content)
+
+  messages.push({role: "user", content: question})
+
+  const response = await fetch("http://localhost:3500/v1/chat/completions", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      stream: false,
+      messages,
+      temperature: 0.0
+    })
+  });
+
+  const data = await response.json()
+  const reply = data.choices[0].message.content;
+
+  messages.push({role: "assistant", content: reply})
+
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  db.prepare(`
+    INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
+    VALUES (?, ?, ?, ?)
+  `).run(deviceId, "device-identification", JSON.stringify(messages), timestamp)
+
+  let deviceKnowledgeRow
+
+  const extractedTagValue = extractTaggedValue(reply);
+
+  if (extractedTagValue?.type === "device") {
+    console.log(extractedTagValue.value)
+    const knowledgeBasePath = app.isPackaged
+      ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
+      : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
+    const knowledgeBaseDB = new Database(knowledgeBasePath)
+
+    try {
+      db.prepare(`
+        UPDATE hosts
+        SET Identified = ?
+        WHERE hostId = ?
+      `).run(extractedTagValue.value, deviceId)
+      
+      const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
+        SELECT documentation
+        FROM knowledge
+        WHERE device_name = ?
+      `)
+      deviceKnowledgeRow = deviceKnowledgeQuery.get(extractedTagValue.value);
+    } finally {
+      knowledgeBaseDB.close();
+    }
+
+    if (deviceKnowledgeRow) {
+      const knowledgeContent = deviceKnowledgeRow.documentation
+      db.prepare('DELETE FROM llm WHERE hostId = ?').run(deviceId);
+      db.prepare(`
+        INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
+        VALUES (?, ?, ?, ?)
+      `).run(deviceId, "device-summary", knowledgeContent, timestamp)
+      sendStatus("db:refresh", {
+        phase: "Database refresh",
+        message: "Refreshing db results"
+      });
+    }
+  } else {
+    console.log("Not ID'd")
+  }
+
+  return reply;
 });
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
@@ -778,8 +669,13 @@ app.whenReady().then((async () => {
   //   console.error("Model download failed:", err)
   // );
 
-  await loadLLMImports();
   await initModels();
+
+  try {
+    await switchModel(deviceIDModelPath);
+  } catch (e) {
+    console.error("Failed to start initial LLM:", e)
+  }
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
