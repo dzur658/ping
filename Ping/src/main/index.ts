@@ -4,17 +4,33 @@ import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
-import {spawn} from "child_process"
+import {spawn, exec} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
 import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
+import {promisify} from "util"
 
 let llamaServerProcess: any = null;
 let currentModelPath: string | null  = null;
 let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
+
+const execAsync = promisify(exec);
+
+async function detectGPU(): Promise<{ hasNvidia: boolean, hasAMD: boolean}> {
+  try {
+    const {stdout} = await execAsync("wmic path win32_VideoController get name");
+    const lower = stdout.toLowerCase();
+    return {
+      hasNvidia: lower.includes("nvidia"),
+      hasAMD: lower.includes("amd") || lower.includes("radeon")
+    };
+  } catch {
+    return {hasNvidia: false, hasAMD: false}
+  }
+}
 
 async function switchModel(modelPath: string) {
   if (currentModelPath === modelPath && llamaServerProcess) {
@@ -27,6 +43,9 @@ async function switchModel(modelPath: string) {
     llamaServerProcess = null;
   }
 
+  const {hasNvidia, hasAMD} = await detectGPU();
+  const useGPU = hasNvidia || hasAMD;
+
   const totalRamGB = os.totalmem() / (1024 ** 3)
   const totalCores = os.cpus().length;
   const threadsToUse = Math.max(1, Math.floor(totalCores / 2))
@@ -35,18 +54,27 @@ async function switchModel(modelPath: string) {
 
   return new Promise((resolve, reject) => {
     const serverExe = app.isPackaged
-    ? path.join(process.resourcesPath, 'llama-cpp', 'llama-server.exe')
-    : path.join(app.getAppPath(), 'resources', 'llama-cpp', 'llama-server.exe');
+    ? path.join(process.resourcesPath, useGPU ? 'llama-cpp-gpu' : 'llama-cpp-cpu', 'llama-server.exe')
+    : path.join(app.getAppPath(), 'resources', useGPU ? 'llama-cpp-gpu' : 'llama-cpp-cpu', 'llama-server.exe');
 
-    llamaServerProcess = spawn(serverExe, [
+    const args = [
       '--model', modelPath,
       '--port', '3500',
-      '--threads', '4',
-      '--ubatch-size', String(ubatchSize),
       '--ctx-size', String(ctxSize),
-      '--no-mmap',
       '--parallel', '1'
-    ], {
+    ]
+
+    if (useGPU) {
+      args.push('--n-gpu-layers', '99');
+      args.push('--threads', '2');
+      args.push('--ubatch-size', '512');
+    } else {
+      args.push('--threads', '4');
+      args.push('--ubatch-size', String(ubatchSize));
+      args.push('--no-mmap');
+    }
+
+    llamaServerProcess = spawn(serverExe, args, {
       windowsHide: true,
       detached: false,
     });
@@ -206,7 +234,7 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
           body: JSON.stringify({
             stream: false,
             messages,
-            temperature: 0.0
+            temperature: 0.3
           })
         });
 
@@ -284,7 +312,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) =>{
     body: JSON.stringify({
       stream: false,
       messages,
-      temperature: 0.0
+      temperature: 0.3
     })
   });
 
