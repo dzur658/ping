@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceVulnerabilities", filePath, selectedDevice),
   getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => ipcRenderer.invoke("sqlite:getDeviceRecommendations", filePath, scanId, selectedDevice),
   
-  askPing: (question: string) => ipcRenderer.invoke("llama:askPing", question),
+  askPing: (question: string, deviceId: string) => ipcRenderer.invoke("llama:askPing", question, deviceId),
   askFollowup: (question: string, deviceId: string,) => ipcRenderer.invoke("llama:askFollowup", question, deviceId,),
   analyzeScanDevices: (scanId: string) => ipcRenderer.invoke("llama:analyzeScanDevices", scanId),
 

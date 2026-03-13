@@ -32,7 +32,6 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         if (!currentDevice) return;
 
         const userMessage = chatInput;
-        const deviceName = selectedDeviceName;
         const selectedDeviceId = currentDevice.hostId;
         const isInitialReply = chatMessages.length <= 1;
 
@@ -54,36 +53,23 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                 const historyContent = pendingQuestion.content ?? "";
                 if (isInitialReply && historyContent) {
                         const question = userMessage
-                        const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
                         selectedDeviceId,
                     );
                 } else {
                     const question = userMessage
-                    const modelName = "deviceIdModel"
                     reply = await window.electronAPI.askFollowup(
                         question,
-                        selectedDeviceId,
+                        selectedDeviceId
                     );
                 }
             } else if (updateRecommendation) {
-                const historyContent = updateRecommendation?.content ?? "";
-                if (isInitialReply && historyContent) {
-                    const question = userMessage
-                    const modelName = "technicalAssistantModel"
-                    reply = await window.electronAPI.askFollowup(
-                        question,
-                        selectedDeviceId,
-                    );
-                } else {
-                    const question = userMessage
-                    const modelName = "technicalAssistantModel"
-                    reply = await window.electronAPI.askFollowup(
-                        question,
-                        selectedDeviceId,
-                    );
-                }
+                const question = userMessage
+                reply = await window.electronAPI.askPing(
+                    question,
+                    selectedDeviceId
+                );
             }
 
             setChatMessages(prev => [

@@ -12,10 +12,10 @@ import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
 import {promisify} from "util"
 
-let llamaServerProcess: any = null;
-let currentModelPath: string | null  = null;
+let llamaServerProcess: any;
 let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
+let currentModelPath: string | null;
 
 const execAsync = promisify(exec);
 
@@ -33,6 +33,8 @@ async function detectGPU(): Promise<{ hasNvidia: boolean, hasAMD: boolean}> {
 }
 
 async function switchModel(modelPath: string) {
+  console.log(currentModelPath)
+  console.log(modelPath)
   if (currentModelPath === modelPath && llamaServerProcess) {
     return;
   }
@@ -83,7 +85,7 @@ async function switchModel(modelPath: string) {
       const log = data.toString();
       console.log(log);
 
-      if (log.includes('HTTP server listening')) {
+      if (log.includes('main: server is listening')) {
         currentModelPath = modelPath;
         console.log("Llama Server is ready on port 3500");
         resolve(true)
@@ -142,6 +144,12 @@ function extractTaggedValue(text: string) {
 }
 
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
+  try {
+    await switchModel(deviceIDModelPath);
+  } catch (e) {
+    console.error("Failed to start deviceID LLM:", e)
+  }
+
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
   const knowledgeBasePath = app.isPackaged
@@ -288,7 +296,13 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   }
 });
 
-ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) =>{
+ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) => {
+  try {
+    await switchModel(deviceIDModelPath);
+  } catch (e) {
+    console.error("Failed to start deviceID LLM:", e)
+  }
+
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
 
@@ -374,6 +388,115 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) =>{
 
   return reply;
 });
+
+ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
+  try {
+    await switchModel(technicalAssistantModelPath);
+  } catch (e) {
+    console.error("Failed to start technical assistant LLM:", e)
+  }
+
+  const dbPath = path.join(app.getPath("userData"), "networkscans.db");
+  const db = new Database(dbPath);
+
+  try {
+    const deviceTag = db.prepare(`
+      SELECT Identified
+      FROM hosts
+      WHERE hostId = ?  
+    `).get(deviceId)
+
+    const history = db.prepare(`
+      SELECT content, interType
+      FROM llm
+      WHERE hostId = ?  
+    `).get(deviceId)
+
+    if (!history.content) {
+      throw new Error(`No history found for device ${deviceId}`)
+    }
+
+    const systemPrompt = `You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
+
+      Key guidelines:
+      - Be friendly and supportive
+      - Explain things in simple, clear language
+      - Avoid technical jargon when possible
+      - If a user seems confused, break down instructions into smaller steps
+      - Be patient with users who are less tech-savvy
+      - Acknowledge their frustration and reassure them
+      - Provide step-by-step instructions when needed
+      - Be encouraging throughout conversation
+      - Never make the user feel stupid for asking basic questions
+      - If you're not sure about something, be honest
+      - Remain temporally neutral when recommending hardware or software versions, refer to product lines and software lifecycles rather than specific years or dates.
+      - Never mention the specific date or year
+
+      Remember that your users are not technical experts. They may be elderly, busy, or just unfamiliar with technology. Your goal is to help them solve their problem while making them feel supported and understood.
+
+      IMPORTANT: You must always output your internal reasoning before your response.
+      Your reasoning must be substantive and useful - analyze what the user is asking, what information you have, and plan your explanation.
+      NEVER use generic placeholders like "thinking through request" or "considering the question" - if you cannot generate substantive reasoning, express uncertainty instead.
+
+      Example of GOOD reasoning:
+      "The user is asking about updating their iPhone 6. I need to check if iOS 15 is still supported for this device and provide clear steps for updating. The user seems elderly based on their questions, so I should use very simple language and break down each step."
+
+      Example of BAD reasoning:
+      "I am thinking about their request. Let me consider what to say."
+
+      Use the following format:
+
+
+      [Your actual response to the user follows here]
+
+      Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.`
+
+    let messages;
+
+    if (history.interType === "device-summary") {
+      messages = [
+          {role: "system", content: systemPrompt},
+          {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
+          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history}`},
+        ]
+      
+      db.prepare(`
+        UPDATE llm
+        SET interType = ?
+        WHERE hostId = ?
+      `).run("device-technical", deviceId)
+    } else if (history.interType === "device-technical") {
+      messages = JSON.parse(history.content)
+    }
+
+    messages.push({role: "user", content: question})
+
+    const response = await fetch("http://localhost:3500/v1/chat/completions", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        stream: false,
+        messages,
+        temperature: 0.3
+      })
+    });
+
+    const data = await response.json()
+    const reply = data.choices[0].message.content;
+
+    messages.push({role: "assistant", content: reply})
+
+    db.prepare(`
+      UPDATE llm
+      SET content = ?
+      WHERE hostId = ?
+    `).run(JSON.stringify(messages), deviceId)
+
+    return reply;
+  } finally {
+    db.close()
+  }
+})
 
 ipcMain.handle("dialog:openSQLiteFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({

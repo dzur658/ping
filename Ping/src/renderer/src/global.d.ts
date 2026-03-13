@@ -24,7 +24,7 @@ interface Window {
     getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<{filePath: string; selectedDevice: string;}[]>;
     getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
     
-    askPing: (question: string) => Promise<string>;
+    askPing: (question: string, deviceId: string) => Promise<string>;
     askFollowup: (question: string, deviceId: string,) => Promise<string>;
     analyzeScanDevices: (scanId: string) => Promise<string>;
 
