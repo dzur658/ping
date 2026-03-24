@@ -20,9 +20,10 @@ interface Window {
     getDBPath(): Promise<string>;
     openSQLiteFile: () => Promise<string | null>;
     getScans: (filePath: string) => Promise<{scanId: string; startTime: string;}[]>;
+    getScanStartTime: (filePath: string, scanId: string) => Promise<string>;
     getDevices: (filePath: string, selectedScan: string) => Promise<any[]>;
     getDeviceVulnerabilities: (filePath: string, selectedDevice: string) => Promise<{filePath: string; selectedDevice: string;}[]>;
-    getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string;}[]>;
+    getDeviceRecommendations: (filePath: string, scanId: string, selectedDevice: string) => Promise<{hostId: string; hostnames: string; interType: string; content: string; knowledgeRow?: string;}[]>;
     
     askPing: (question: string, deviceId: string) => Promise<string>;
     askFollowup: (question: string, deviceId: string,) => Promise<string>;

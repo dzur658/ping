@@ -147,14 +147,6 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                                     >
                                         Start Time
                                     </TableCell>
-                                    <TableCell
-                                        sx={{
-                                            color: "white",
-                                            align: "right",
-                                            fontWeight: "bold"
-                                        }}
-                                    >
-                                    </TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -164,7 +156,6 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                                             key={scan.scanId}
                                             scanId={scan.scanId}
                                             startTime={scan.startTime}
-                                            //selected={setLocalSelectedScan(scan.scanId)}
                                             onSelect={(scanId: string) => {
                                                 setSelectedScan(scanId);
                                                 navigate("/ReportPage")

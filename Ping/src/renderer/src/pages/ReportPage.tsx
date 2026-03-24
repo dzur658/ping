@@ -6,6 +6,7 @@ import BackButton from "@renderer/components/BackButton";
 import DeviceMenu from "@renderer/components/DeviceMenu";
 import RecommendationChoice from "@renderer/components/RecommendationChoice";
 import MarkdownRenderer from "@renderer/components/MarkdownRenderer";
+import PingLogo from '../../../../resources/PingLogo.svg'
 
 interface ReportPageProps {
   filePath: string | null;
@@ -17,6 +18,15 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     const location  = useLocation();
     const scanIdEffective = location.state?.scanId ?? selectedScan;
     const filePathEffective = location.state?.filePath ?? filePath;
+    const formatScanTime = (timestamp: string | null) => {
+        if (!timestamp) return "";
+        return new Date(Number(timestamp) * 1000).toLocaleString();
+    }
+    const stripTags = (text: string) =>
+        text
+            .replace(/<think>[\s\S]*?<\/think>/g, "")
+            .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/, '$1')
+            .trim();
 
     const [chatMessages, setChatMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
@@ -37,7 +47,10 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         setChatMessages(prev => [
             ...prev,
-            { role: "user", content: userMessage }
+            {
+                role: "user",
+                content: userMessage
+            }
         ]);
 
         setChatInput("");
@@ -46,8 +59,6 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         try {
             const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
             const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-summary");
-            // console.log(pendingQuestion?.content)
-            //console.log(updateRecommendation?.content)
             let reply;
             if (pendingQuestion) {
                 const historyContent = pendingQuestion.content ?? "";
@@ -74,7 +85,10 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
             setChatMessages(prev => [
             ...prev,
-            { role: "assistant", content: reply }
+            {
+                role: "assistant",
+                content: stripTags(reply)
+            }
             ]);
         } catch (err) {
             setChatMessages(prev => [
@@ -99,14 +113,25 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     interface Recommendation {
         interType: string;
         content: string;
+        knowledgeRow?: string;
     }
 
-    //const [data, setData] = useState<any[]>([]);
+    const [scanStartTime, setScanStartTime] = useState<string | null>(null);
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
     const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!filePathEffective || !scanIdEffective) {
+            navigate("/")
+            return;
+        }
+        window.electronAPI.getScanStartTime(filePathEffective, scanIdEffective)
+            .then(setScanStartTime);
+
+    }, [filePathEffective, scanIdEffective, navigate])
 
     useEffect(() => {
         if (!filePathEffective || !scanIdEffective) {
@@ -145,15 +170,10 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
 
         if (pendingQuestion && pendingQuestion.content) {
-            const cleanQuestion = pendingQuestion.content
-                .replace(/<think>[\s\S]*?<\/think>/g, "")
-                .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/, '$1')
-                .trim();
-
             setChatMessages([
                 {
                     role: "assistant",
-                    content: cleanQuestion
+                    content: stripTags(pendingQuestion.content)
                 }
             ]);
         } else {
@@ -207,8 +227,6 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         })()
         : selectedDevice
 
-    const recommendationCount = recommendations.length
-
     return (
         <Box
             sx={{
@@ -242,7 +260,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         boxSizing: "border-box",
                         alignItems: "center",
                         overflowX: "hidden",
-                        marginTop: "10vh",
+                        marginTop: "0.5vh",
                     }}
                 >
                     <Box
@@ -301,47 +319,6 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         height: "100%"
                     }}
                 >
-                    <Typography
-                        variant="h3"
-                        sx={{
-                            position: "absolute",
-                            top: "1vh",
-                            alignSelf: "center",
-                            textAlign: "center"
-                        }}
-                    >
-                        {filePathEffective?.split(/[\\/]/).pop()}
-                    </Typography>
-
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            position: "absolute",
-                            top: "11vh",
-                            marginLeft: 5,
-                            alignSelf: "flex-start",
-                            textAlign: "center",
-                            paddingBottom: "0.2rem",
-                            borderBottom: "solid",
-                            borderWidth: "1px"
-                        }}
-                    >
-                        {selectedDeviceName}
-                    </Typography>
-
-                    <Typography
-                        variant="subtitle1"
-                        sx={{
-                            position: "absolute",
-                            top: "16.3vh",
-                            marginLeft: 6,
-                            alignSelf: "flex-start",
-                            textAlign: "center",
-                        }}
-                    >
-                        Recommendation Count: {recommendationCount}
-                    </Typography>
-
                     {recommendations.length === 0 ? (
                         <Box
                             sx={{
@@ -367,7 +344,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                     boxSizing: "border-box",
                                     alignItems: "center",
                                     overflowX: "hidden",
-                                    marginTop: "20vh",
+                                    marginTop: "0.5vh",
                                 }}
                             >
                                 <Box
@@ -377,17 +354,63 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                         borderWidth: "0.1rem",
                                         borderRadius: "01rem",
                                         marginBottom: "0.5rem",
-                                        width: "100%"
+                                        width: "100%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        position: "relative",
+                                        padding: "0.5rem",
+                                        boxSizing: "border-box"
                                     }}
                                 >
-                                    <Typography variant="h6" 
+                                    <Box
+                                        component="img"
+                                        src={PingLogo}
                                         sx={{
-                                            margin: 1,
-                                            textAlign: "center",
-                                            fontWeight: "bold"
+                                            filter: "invert(1)",
+                                            height: "3.5vh",
+                                            width: "auto",
+                                            zIndex: 10,
+                                            alignSelf: "flex-start",
+                                            top: "vh",
+                                            marginLeft: 1
+                                        }}
+                                    />
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            marginLeft: 3,
+                                            alignSelf: "flex-start",
+                                            textAlign: "left",
+                                            marginTop: 1.5,
+                                            paddingBottom: "0.1rem",
+                                            borderBottom: "solid",
+                                            borderWidth: "1px"
                                         }}
                                     >
-                                        Recommendations
+                                        {selectedDeviceName}
+                                    </Typography>
+                                    <Typography variant="h6" 
+                                        sx={{
+                                            fontWeight: "bold",
+                                            position: "absolute",
+                                            left: "50%",
+                                            transform: "translateX(-50%)"
+                                        }}
+                                    >
+                                        Security Guidance
+                                    </Typography>
+                                    <Typography
+                                        variant="body1"
+                                        sx={{
+                                            marginTop: 2,
+                                            //color: "gray",
+                                            right: "1.5%",
+                                            position: "absolute",
+                                            alignSelf: "right",
+                                            //transform: "translateX(-50%)"
+                                        }}
+                                    >
+                                        Scan Time: {formatScanTime(scanStartTime)}
                                     </Typography>
                                 </Box>
                                 <TableContainer
@@ -449,7 +472,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                                         content={
                                                             recommendation.interType === "device-identification"
                                                             ? null
-                                                            : recommendation.content
+                                                            : recommendation.knowledgeRow || null
                                                         }
                                                         expanded={expandedRecommendation === recommendation.interType}
                                                         onSelect={() =>setExpandedRecommendation(
@@ -476,7 +499,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         boxSizing: "border-box",
                         alignItems: "center",
                         overflowX: "hidden",
-                        marginTop: "20vh"
+                        marginTop: "0.5vh",
                     }}
                 >
                     <Box
@@ -486,12 +509,12 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                             borderWidth: "0.1rem",
                             borderRadius: "01rem",
                             marginBottom: "0.5rem",
-                            width: "100%"
+                            width: "100%",
                         }}
                     >
                         <Typography variant="h6" 
                             sx={{
-                                margin: 1,
+                                margin: 2,
                                 textAlign: "center",
                                 fontWeight: "bold"
                             }}

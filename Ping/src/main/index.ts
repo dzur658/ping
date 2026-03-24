@@ -2,7 +2,6 @@ import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
 import Database from 'better-sqlite3'
 import {spawn, exec} from "child_process"
 import os from "os"
@@ -11,6 +10,7 @@ import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
 import {promisify} from "util"
+import PingLogo from '../../resources/PingLogo.png?asset'
 
 let llamaServerProcess: any;
 let deviceIDModelPath: string;
@@ -457,7 +457,7 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
       messages = [
           {role: "system", content: systemPrompt},
           {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
-          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history}`},
+          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
         ]
       
       db.prepare(`
@@ -523,6 +523,20 @@ ipcMain.handle('sqlite:getScans', async (_, filePath: string) => {
   }
 });
 
+ipcMain.handle('sqlite:getScanStartTime', async (_, filePath: string, scanId: string) => {
+  const db = new Database(filePath);
+  try {
+    const scanStartTime = db.prepare(`
+      SELECT startTime
+      FROM scan
+      WHERE scanId = ?
+    `).get(scanId);
+    return scanStartTime.startTime;
+  } finally {
+    db.close();
+  }
+});
+
 ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: string) => {
   const db = new Database(filePath);
   try {
@@ -531,6 +545,11 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
       FROM hosts
       JOIN llm ON hosts.hostId = llm.hostId
       WHERE scanId = ?
+      AND llm.timestamp = (
+        SELECT MAX(timestamp)
+        FROM llm AS llm_inner
+        WHERE llm_inner.hostId = hosts.hostId
+      )
     `)
     const rows = allDevicesStatement.all(selectedScan);
     return rows;
@@ -543,18 +562,45 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, sc
   if (!selectedDevice) return [];
 
   const devicedb = new Database(filePath);
+  const knowledgeBasePath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'knowledgeBase', 'knowledge_base.db')
+    : path.join(app.getAppPath(), 'resources', 'knowledgeBase', 'knowledge_base.db');
+  const knowledgeBaseDB = new Database(knowledgeBasePath)
+
   try {
+    let deviceInfo
     const devicestatement = devicedb.prepare(`
-      SELECT hosts.hostId,hosts.hostnames,llm.interType,llm.content
+      SELECT hosts.hostId,hosts.hostnames,hosts.Identified,llm.interType,llm.content
       FROM hosts 
       JOIN llm ON hosts.hostId = llm.hostId
       WHERE hosts.scanId = ?
       AND hosts.ipAddress = ?
     `)
-    const rows = devicestatement.all(scanId, selectedDevice);
-    return rows;
+    const deviceRow = devicestatement.get(scanId, selectedDevice);
+
+    if (deviceRow.interType === "device-summary" || deviceRow.interType === "device-technical") {
+      const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
+        SELECT documentation
+        FROM knowledge
+        WHERE device_name = ?
+      `)
+      const deviceKnowledgeRow = deviceKnowledgeQuery.get(deviceRow.Identified);
+
+      deviceInfo = [{
+        interType: deviceRow.interType,
+        content: deviceRow.content,
+        knowledgeRow: deviceKnowledgeRow.documentation
+      }]
+    } else {
+      deviceInfo = [{
+        interType: deviceRow.interType,
+        content: deviceRow.content      }]
+    }
+
+    return deviceInfo;
   } finally {
     devicedb.close();
+    knowledgeBaseDB.close();
   }
 });
 
@@ -732,9 +778,11 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    title: "Ping",
+    icon: PingLogo,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' ? { PingLogo } : {}),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -781,6 +829,7 @@ function getSubnet(ip: string) {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((async () => {
+  app.setName("Ping)")
   const userData = app.getPath('userData');
   const dbPath = path.join(userData, 'networkscans.db');
 
