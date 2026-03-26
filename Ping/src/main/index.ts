@@ -50,13 +50,13 @@ async function switchModel(modelPath: string) {
 
   const totalRamGB = os.totalmem() / (1024 ** 3)
   const totalCores = os.cpus().length;
-  const threadsToUse = Math.max(1, Math.floor(totalCores / 2))
+  //const threadsToUse = Math.max(1, Math.floor(totalCores / 2))
   const ctxSize = totalRamGB < 8 ? 1024 : 2048
   const ubatchSize = totalCores <= 4? 8 : 16
 
   return new Promise((resolve, reject) => {
     const serverExe = app.isPackaged
-    ? path.join(process.resourcesPath, useGPU ? 'llama-cpp-gpu' : 'llama-cpp-cpu', 'llama-server.exe')
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', useGPU ? 'llama-cpp-gpu' : 'llama-cpp-cpu', 'llama-server.exe')
     : path.join(app.getAppPath(), 'resources', useGPU ? 'llama-cpp-gpu' : 'llama-cpp-cpu', 'llama-server.exe');
 
     const args = [
@@ -79,6 +79,36 @@ async function switchModel(modelPath: string) {
     llamaServerProcess = spawn(serverExe, args, {
       windowsHide: true,
       detached: false,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    const logPath = path.join(app.getPath('userData'), 'ping-debug.log');
+    const writeLog = (msg: string) => fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`);
+
+    llamaServerProcess.stderr?.on('data', (data: Buffer) => {
+        const log = data.toString();
+        writeLog(`[stderr] ${log}`);
+        if (log.includes('main: server is listening')) {
+            currentModelPath = modelPath;
+            writeLog('Server ready!');
+            resolve(true);
+        }
+    });
+
+    llamaServerProcess.stdout?.on('data', (data: Buffer) => {
+        writeLog(`[stdout] ${data.toString()}`);
+    });
+
+    llamaServerProcess.on('close', (code: number) => {
+        writeLog(`Server closed with code: ${code}`);
+        if (code !== 0 && currentModelPath !== modelPath) {
+            reject(new Error(`Llama server exited with code ${code}`));
+        }
+    });
+
+    llamaServerProcess.on('error', (err: any) => {
+        writeLog(`Spawn error: ${err.message}`);
+        reject(err);
     });
 
     llamaServerProcess.stderr?.on('data', (data: Buffer) => {
@@ -330,6 +360,12 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) => {
     })
   });
 
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Llama server error:", response.status, errText);
+    throw new Error(`Llama server returned ${response.status}: ${errText}`);
+  }
+
   const data = await response.json()
   const reply = data.choices[0].message.content;
 
@@ -480,6 +516,12 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
         temperature: 0.3
       })
     });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Llama server error:", response.status, errText);
+      throw new Error(`Llama server returned ${response.status}: ${errText}`);
+    }
 
     const data = await response.json()
     const reply = data.choices[0].message.content;
@@ -829,7 +871,7 @@ function getSubnet(ip: string) {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then((async () => {
-  app.setName("Ping)")
+  app.setName("Ping")
   const userData = app.getPath('userData');
   const dbPath = path.join(userData, 'networkscans.db');
 

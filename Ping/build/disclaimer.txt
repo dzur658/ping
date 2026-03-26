@@ -1,0 +1,21 @@
+IMPORTANT - PLEASE READ
+
+AI ACCURACY DISCLAIMER
+----------------------
+Ping uses local AI models to identify devices and provide recommendations.
+AI can make mistakes. All device identifications and security recommendations
+should be verified independently before acting on them. Ping is not responsible
+for any decisions made based on AI-generated content.
+
+LEGAL & ETHICAL USE
+-------------------
+You must only scan networks that you own or have explicit written permission
+to scan. Unauthorized network scanning may be illegal under the Computer Fraud
+and Abuse Act (CFAA) or equivalent laws in your jurisdiction.
+
+By installing Ping, you agree that:
+- You will only scan networks you own or have permission to scan
+- You understand AI recommendations may be inaccurate
+- You accept full responsibility for how you use this software
+
+If you do not agree, click Cancel to abort installation.

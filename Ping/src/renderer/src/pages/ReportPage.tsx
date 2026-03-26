@@ -91,6 +91,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
             }
             ]);
         } catch (err) {
+            console.log(err)
             setChatMessages(prev => [
             ...prev,
             {
