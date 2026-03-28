@@ -9,7 +9,6 @@ import xml.etree.ElementTree as ET
 import sys
 import json
 
-from vulscan_extraction import extract_vuln_details
 
 CUSTOM_SCRIPTS = ['console-detect-ouis.nse', 
                   'echo-detect-ouis.nse', 
@@ -121,13 +120,16 @@ def parse_nmap_xml(xml_file):
                     else:
                         service_name = ""
 
-                    ## Extract vulscan script output if available
-                    vulscan = port.find("script[@id='vulscan']")
-                    if vulscan is not None:
-                        vulscan_extracted = extract_vuln_details(vulscan.get('output'))
-
-                        # Add vulscan data to extracted data
-                        extracted_data[ip_address][port_id]['vulscan'] = vulscan_extracted
+                    ## Extract pingscan_cpe2json script output if available
+                    pingscan = port.find("script[@id='pingscan_cpe2json']")
+                    if pingscan is not None:
+                        pingscan_output = pingscan.get('output')
+                        if pingscan_output:
+                            try:
+                                pingscan_json = json.loads(pingscan_output)
+                                extracted_data[ip_address][port_id]['vulnerabilities'] = pingscan_json.get('findings', [])
+                            except json.JSONDecodeError as e:
+                                print(f"Error decoding pingscan_cpe2json JSON for port {port_id}: {e}")
 
 
             ## Get OS detection information

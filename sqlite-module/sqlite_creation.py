@@ -78,9 +78,12 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS vulnerabilities (
         vulnId INTEGER PRIMARY KEY,
         serviceId INTEGER NOT NULL,
+        description TEXT,
         dbSource TEXT,
         cveId TEXT,
-        description TEXT,
+        year INTEGER,
+        unifiedCvss REAL,
+        severity TEXT,
         FOREIGN KEY (serviceId) REFERENCES services (serviceId)
     );
     """)

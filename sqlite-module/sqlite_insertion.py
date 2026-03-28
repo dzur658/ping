@@ -109,22 +109,18 @@ def insert_data_from_json(conn, json_data):
                     
                     # === 4. LOOP AND INSERT VULNERABILITIES ===
                     
-                    if 'vulscan' in port_data and isinstance(port_data['vulscan'], list):
-                        # Iterate directly over the list of vulnerability dictionaries
-                        for vuln in port_data['vulscan']:
-                            # Extract data using .get() for safety
-                            source = vuln.get('database') 
-                            vuln_id = vuln.get('id')
+                    if 'vulnerabilities' in port_data and isinstance(port_data['vulnerabilities'], list):
+                        for vuln in port_data['vulnerabilities']:
+                            cveid = vuln.get('cveid')
                             description = vuln.get('description')
 
-                            # Make sure we have at least an ID or description before inserting (safety check)
-                            if source and (vuln_id or description):
+                            if cveid or description:
                                 cursor.execute(
                                     """
-                                    INSERT INTO vulnerabilities (serviceId, dbSource, cveId, description)
-                                    VALUES (?, ?, ?, ?)
+                                    INSERT INTO vulnerabilities (serviceId, description, dbSource, cveId, year, unifiedCvss, severity)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?)
                                     """,
-                                    (service_id, source, vuln_id, description) 
+                                    (service_id, description, "pingscan", cveid, vuln.get('year'), vuln.get('cvss'), vuln.get('severity'))
                                 )
                                 
         # All data has been inserted, so we "commit" the changes
