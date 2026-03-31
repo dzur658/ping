@@ -491,10 +491,10 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
 
     if (history.interType === "device-summary") {
       messages = [
-          {role: "system", content: systemPrompt},
-          {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
-          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
-        ]
+        {role: "system", content: systemPrompt},
+        {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
+        {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
+      ]
       
       db.prepare(`
         UPDATE llm
@@ -502,7 +502,20 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
         WHERE hostId = ?
       `).run("device-technical", deviceId)
     } else if (history.interType === "device-technical") {
-      messages = JSON.parse(history.content)
+      try {
+        messages = JSON.parse(history.content)
+      } catch {
+        messages = [
+          {role: "system", content: systemPrompt},
+          {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
+          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
+        ]
+        db.prepare(`
+          UPDATE llm
+          SET interType = ?
+          WHERE hostId = ?
+        `).run("device-technical", deviceId)
+      }
     }
 
     messages.push({role: "user", content: question})

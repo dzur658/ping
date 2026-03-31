@@ -22,11 +22,13 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         if (!timestamp) return "";
         return new Date(Number(timestamp) * 1000).toLocaleString();
     }
-    const stripTags = (text: string) =>
-        text
-            .replace(/<think>[\s\S]*?<\/think>/g, "")
+    const stripTags = (text: string) => {
+        if (!text) return "";
+        return text
+            .replace(/<think>[\s\S]*?<\/think>/, "")
             .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/, '$1')
             .trim();
+    }
 
     const [chatMessages, setChatMessages] = useState<
     { role: "user" | "assistant"; content: string }[]
@@ -58,7 +60,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         try {
             const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
-            const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-summary");
+            const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-summary" || recommendation.interType === "device-technical");
             let reply;
             if (pendingQuestion) {
                 const historyContent = pendingQuestion.content ?? "";
