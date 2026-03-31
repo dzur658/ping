@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: ping
+productName: Ping
 directories:
   buildResources: build
 files:
@@ -12,7 +12,8 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: ping
+  executableName: Ping
+  icon: build/PingIcon.ico
 nsis:
   oneClick: false
   artifactName: ${name}-${version}-setup.${ext}
@@ -21,6 +22,10 @@ nsis:
   createDesktopShortcut: always
   include: build/installer.nsh
   license: build/license.txt
+  installerIcon: build/PingIcon.ico
+  uninstallerIcon: build/PingIcon.ico
+  installerHeaderIcon: build/PingIcon.ico
+  perMachine: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:

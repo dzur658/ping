@@ -25,8 +25,9 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     const stripTags = (text: string) => {
         if (!text) return "";
         return text
-            .replace(/<think>[\s\S]*?<\/think>/, "")
-            .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/, '$1')
+            .replace(/<think>[\s\S]*?<\/think>/g, "")
+            .replace(/^[\s\S]*<question>([\s\S]*?)<\/question>[\s\S]*$/g, '$1')
+            .replace(/\\n/g, "\n")
             .trim();
     }
 
@@ -544,17 +545,19 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                             }}
                         >
                             {chatMessages.map((msg, idx) => (
-                            <Typography
-                                key={idx}
-                                sx={{
-                                color: msg.role === "assistant" ? "#6cf" : "white",
-                                mb: 1,
-                                whiteSpace: "pre-wrap"
-                                }}
-                            >
-                                <strong>{msg.role === "assistant" ? "Ping" : "You"}:</strong>{" "}
+                            <Box key={idx} sx={{mb: 1.5}}>
+                                <Box 
+                                    sx={{
+                                    color: msg.role === "assistant" ? "#6cf" : "white",
+                                    mb: 0.3,
+                                    fontSize: "1rem",
+                                    fontWeight: "bold"
+                                    }}
+                                >
+                                    {msg.role === "assistant" ? "Ping" : "You"}
+                                </Box>
                                 {<MarkdownRenderer content={msg.content} />}
-                            </Typography>
+                            </Box>
                             ))}
 
                             {chatLoading && (

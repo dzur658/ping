@@ -51,7 +51,7 @@ async function switchModel(modelPath: string) {
   const totalRamGB = os.totalmem() / (1024 ** 3)
   const totalCores = os.cpus().length;
   //const threadsToUse = Math.max(1, Math.floor(totalCores / 2))
-  const ctxSize = totalRamGB < 8 ? 1024 : 2048
+  const ctxSize = totalRamGB < 8 ? 2048 : 4096
   const ubatchSize = totalCores <= 4? 8 : 16
 
   return new Promise((resolve, reject) => {
@@ -690,6 +690,7 @@ ipcMain.handle("nmap:startScan", async (_, ipRange: string) => {
 
     const scriptPaths = [
       'vulscan.nse',
+      'pingscan_cpe2json.nse',
       'console-detect-ouis.nse',
       'echo-detect-ouis.nse',
       'roku-detect-ouis.nse',
