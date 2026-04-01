@@ -6,16 +6,17 @@ import Database from 'better-sqlite3'
 import {spawn, exec} from "child_process"
 import os from "os"
 import { randomUUID } from "crypto";
-import { downloadFileToCacheDir } from "@huggingface/hub";
 import {Template} from "@huggingface/jinja"
 import {sendStatus} from "./ipcStatus";
 import {promisify} from "util"
 import PingLogo from '../../resources/PingLogo.png?asset'
 
+let mainWindow: BrowserWindow | null = null;
 let llamaServerProcess: any;
 let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
 let currentModelPath: string | null;
+let isDownloading = false;
 
 const execAsync = promisify(exec);
 
@@ -126,31 +127,59 @@ async function switchModel(modelPath: string) {
   });
 }
 
-async function ensureDeviceIDModelDownloaded() {
-  const modelPath  = await downloadFileToCacheDir({
-    repo: "dzur658/ping-device-id-fused-gguf-001",
-    path: "ping_device_id.gguf"
-  });
-
-  console.log("Model path:", modelPath);
-
-  return modelPath;
-}
-
-async function ensureTechnicalAssistantModelDownloaded() {
-  const modelPath   = await downloadFileToCacheDir({
-    repo: "dzur658/ping-technical-assistant-fused-gguf-001",
-    path: "ping_technical_support.gguf"
-  });
-
-  console.log("Model path:", modelPath);
-
-  return modelPath;
-}
-
 async function initModels() {
-  deviceIDModelPath = await ensureDeviceIDModelDownloaded();
-  technicalAssistantModelPath = await ensureTechnicalAssistantModelDownloaded();
+  const modelsDirectory = path.join(app.getPath('userData'), 'models');
+  if (!fs.existsSync(modelsDirectory)) {
+    fs.mkdirSync(modelsDirectory, {recursive: true});
+  }
+
+  deviceIDModelPath = path.join(modelsDirectory, 'ping_device_id.gguf')
+  technicalAssistantModelPath = path.join(modelsDirectory, 'ping_technical_support.gguf')
+}
+
+async function downloadModelWithProgress(
+  url: string,
+  destinationPath: string,
+  modelKey: string
+): Promise<void> {
+  const tempPath = destinationPath + '.tmp';
+
+  const response = await fetch(url, {redirect: 'follow'});
+  if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+
+  const total = parseInt(response.headers.get('content-length') || '0');
+  let downloaded = 0;
+  let lastReportedPercent = -1;
+
+  const fileStream = fs.createWriteStream(tempPath);
+  const reader = response.body!.getReader();
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    fileStream.write(Buffer.from(value));
+    downloaded += value.length
+
+    const percent = total ? Math.round((downloaded / total) * 100) : 0;
+
+    if (percent !== lastReportedPercent) {
+      lastReportedPercent = percent;
+      mainWindow?.webContents.send('models:progress', {
+        modelKey,
+        downloaded,
+        total,
+        percent: total ? Math.round((downloaded / total) * 100) :0
+      });
+    }
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    fileStream.end();
+    fileStream.on('finish', resolve);
+    fileStream.on('error', reject);
+  })
+
+  fs.renameSync(tempPath, destinationPath);
 }
 
 function extractTaggedValue(text: string) {
@@ -172,6 +201,43 @@ function extractTaggedValue(text: string) {
 
   return null;
 }
+
+ipcMain.handle('models:checkStatus', () => {
+  return {
+    deviceIDReady: fs.existsSync(deviceIDModelPath),
+    technicalAssistantReady: fs.existsSync(technicalAssistantModelPath)
+  };
+});
+
+ipcMain.handle('models:startDownload', async () => {
+  if (isDownloading) return;
+  isDownloading = true
+
+  try {
+    if (!fs.existsSync(deviceIDModelPath)) {
+      await downloadModelWithProgress(
+        'https://huggingface.co/dzur658/ping-device-id-fused-gguf-001/resolve/main/ping_device_id.gguf',
+        deviceIDModelPath,
+        'deviceID'
+      );
+    }
+
+    if (!fs.existsSync(technicalAssistantModelPath)) {
+      await downloadModelWithProgress(
+        'https://huggingface.co/dzur658/ping-technical-assistant-fused-gguf-001/resolve/main/ping_technical_support.gguf',
+        technicalAssistantModelPath,
+        'technicalAssistant'
+      );
+    }
+
+    await switchModel(deviceIDModelPath);
+    mainWindow?.webContents.send('models:downloadComplete');
+  } catch (err: any) {
+    mainWindow?.webContents.send('models:downloadError', err.message)
+  } finally {
+    isDownloading = false;
+  }
+})
 
 ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
   try {
@@ -818,12 +884,9 @@ ipcMain.handle("python:processScan", async (_, xmlPath: string) => {
 let deviceTemplate: Template;
 
 function loadTemplate() {
-  const templatePath = path.join(
-    app.getAppPath(),
-    'resources',
-    'templates',
-    'prompt_template.j2'
-  );
+  const templatePath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'templates', 'prompt_template.j2')
+    : path.join(app.getAppPath(), 'resources', 'templates', 'prompt_template.j2');
 
   const templateString = fs.readFileSync(templatePath, "utf-8");
   deviceTemplate = new Template(templateString)
@@ -831,7 +894,7 @@ function loadTemplate() {
 
 function createWindow(): void {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     title: "Ping",
@@ -846,7 +909,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -889,13 +952,9 @@ app.whenReady().then((async () => {
   const userData = app.getPath('userData');
   const dbPath = path.join(userData, 'networkscans.db');
 
-  const seedDBPath = path.join(
-    app.getAppPath(),
-    'src',
-    'renderer',
-    'public',
-    'networkscans.db'
-  );
+  const seedDBPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app.asar.unpacked', 'resources', 'networkscans.db')
+    : path.join(app.getAppPath(), 'resources', 'networkscans.db');
 
   if (!fs.existsSync(dbPath)) {
     if (!fs.existsSync(seedDBPath)) {
@@ -925,12 +984,23 @@ app.whenReady().then((async () => {
   //   console.error("Model download failed:", err)
   // );
 
-  await initModels();
-
   try {
-    await switchModel(deviceIDModelPath);
-  } catch (e) {
-    console.error("Failed to start initial LLM:", e)
+    await initModels();
+  } catch (error) {
+    console.error('Startup error:', error);
+    mainWindow?.show()
+  }
+
+  const modelsReady = 
+    fs.existsSync(deviceIDModelPath) &&
+    fs.existsSync(technicalAssistantModelPath);
+
+  if (modelsReady) {
+    try {
+      await switchModel(deviceIDModelPath);
+    } catch (e) {
+      console.error("Failed to start initial LLM:", e)
+    }
   }
 
   app.on('activate', function () {

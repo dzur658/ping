@@ -1,6 +1,23 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  checkModelStatus: () => ipcRenderer.invoke('models:checkStatus'),
+  startModelDownload: () => ipcRenderer.invoke('models:startDownload'),
+  onModelProgress: (cb) => {
+    const handler = (_event: any, data: any) => cb(data);
+    ipcRenderer.on('models:progress', handler)
+    return () => ipcRenderer.removeListener('models:progress', handler)
+  },
+  onModelDownloadComplete: (cb) => {
+    const handler = () => cb();
+    ipcRenderer.on('models:downloadComplete', handler);
+    return () => ipcRenderer.removeListener('models:downloadComplete', handler);
+  },
+  onModelDownloadError: (cb) => {
+    const handler = (_event: any, msg: any) => cb(msg);
+    ipcRenderer.on('models:downloadError', handler);
+    return () => ipcRenderer.removeListener('models:downloadError', handler);
+  },
   getDBPath: () => ipcRenderer.invoke('database:getPath'),
   openSQLiteFile: () => ipcRenderer.invoke("dialog:openSQLiteFile"),
   getScans: (filePath: string) => ipcRenderer.invoke("sqlite:getScans", filePath),

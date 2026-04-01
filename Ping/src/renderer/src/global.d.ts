@@ -15,8 +15,23 @@ interface ScanStatus {
   percent?: number;
 }
 
+interface ModelProgress {
+  modelKey: string;
+  percent: number;
+  downloaded: number;
+  total: number;
+}
+
+interface ModelStatus {
+  deviceIDReady: boolean;
+  technicalAssistantReady: boolean;
+}
+
 interface Window {
   electronAPI: {
+    checkModelStatus: () => Promise<ModelStatus>;
+    startModelDownload: () => Promise<void>;
+
     getDBPath(): Promise<string>;
     openSQLiteFile: () => Promise<string | null>;
     getScans: (filePath: string) => Promise<{scanId: string; startTime: string;}[]>;
@@ -39,5 +54,9 @@ interface Window {
     onLog(callback: (message: string) => void): () => void;
 
     onRefreshData(callback: (message: string) => void): () => void;
+
+    onModelProgress(callback:(data: ModelProgress) => void): () => void;
+    onModelDownloadComplete(callback: () => void): () => void;
+    onModelDownloadError(callback: (message: string) => void): () => void;
   };
 }

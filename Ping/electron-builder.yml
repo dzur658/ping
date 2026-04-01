@@ -22,8 +22,8 @@ nsis:
   createDesktopShortcut: always
   include: build/installer.nsh
   license: build/license.txt
-  installerIcon: build/PingIcon.ico
-  uninstallerIcon: build/PingIcon.ico
+  installerIcon: build/PingIconBlack.ico
+  uninstallerIcon: build/PingIconBlack.ico
   installerHeaderIcon: build/PingIcon.ico
   perMachine: true
 mac:

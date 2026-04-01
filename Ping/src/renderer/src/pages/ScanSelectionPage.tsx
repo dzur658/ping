@@ -60,17 +60,6 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                     height: "100%"
                 }}
             >
-                <Typography
-                    variant="h3"
-                    sx={{
-                        position: "absolute",
-                        top: "1vh",
-                        alignSelf: "center",
-                        textAlign: "center"
-                    }}
-                >
-                    {filePath?.split(/[\\/]/).pop()}
-                </Typography>
                 <Box
                     sx={{
                         border: "1px solid white",
@@ -84,7 +73,7 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                         boxSizing: "border-box",
                         alignItems: "center",
                         overflowX: "hidden",
-                        marginTop: "10vh",
+                        marginTop: "0.5vh",
                     }}
                 >
                     <Box

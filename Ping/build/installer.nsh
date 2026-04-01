@@ -6,7 +6,7 @@
 
 !macro customWelcomePage
   PageEx license
-    LicenseText "Important Disclaimer"
+    LicenseText "AI Disclaimer" "Please review the following important informationbefore installing Ping."
     LicenseData "${PROJECT_DIR}\build\disclaimer.txt"
   PageExEnd
 !macroend
