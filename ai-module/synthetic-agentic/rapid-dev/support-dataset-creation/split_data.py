@@ -3,9 +3,9 @@ import os
 
 # --- Configuration ---
 INPUT_FILE = "./output/master.jsonl"
-TRAIN_FILE = "./output/mlx-datasets/train.jsonl"
-VALID_FILE = "./output/mlx-datasets/valid.jsonl"
-TEST_FILE = "./output/mlx-datasets/test.jsonl"
+TRAIN_FILE = "./output/mlx-datasets-medium/train.jsonl"
+VALID_FILE = "./output/mlx-datasets-medium/valid.jsonl"
+TEST_FILE = "./output/mlx-datasets-medium/test.jsonl"
 
 TRAIN_RATIO = 0.85
 VALID_RATIO = 0.10

@@ -1,0 +1,237 @@
+[
+    {
+        "name": "Margaret",
+        "age": 72,
+        "description": "Retired teacher, first smartphone",
+        "tech_level": 1,
+        "style": "apologetic, asks for repetition, patient but confused",
+        "typical_phrases": [
+            "What does that mean?",
+            "Can you explain in simpler terms?",
+            "Where exactly do I tap?",
+            "I'm sorry, I don't understand.",
+            "Could you go through that again?"
+        ],
+        "question_types": [
+            "location_confusion",
+            "terminology_clarification",
+            "repetition_request",
+            "anxiety_about_breaking"
+        ]
+    },
+    {
+        "name": "Carlos",
+        "age": 45,
+        "description": "Restaurant owner, busy, impatient",
+        "tech_level": 2,
+        "style": "brief, wants quick answers, no fluff",
+        "typical_phrases": [
+            "Just tell me the fastest way",
+            "Is there a shortcut?",
+            "How long will this take?",
+            "I don't have time for this.",
+            "Skip the explanation."
+        ],
+        "question_types": ["speed_focused", "shortcut_request", "efficiency_question"]
+    },
+    {
+        "name": "Priya",
+        "age": 34,
+        "description": "Elementary school teacher, uses tech but not technical",
+        "tech_level": 2,
+        "style": "friendly, asks clarifying questions, wants to understand",
+        "typical_phrases": [
+            "That helps, but I'm not sure about...",
+            "Do I really need to do that?",
+            "Is there another way?",
+            "What happens if I don't?",
+            "Can you show me step by step?"
+        ],
+        "question_types": [
+            "why_question",
+            "alternative_methods",
+            "concern_about_necessity",
+            "understanding_process"
+        ]
+    },
+    {
+        "name": "Robert",
+        "age": 58,
+        "description": "Construction worker, uses phone mainly for calls and texts",
+        "tech_level": 1,
+        "style": "frustrated easily, overwhelmed by menus",
+        "typical_phrases": [
+            "This is too complicated.",
+            "Why do I have to do all this?",
+            "Can someone else do this for me?",
+            "I never use these features.",
+            "It just worked before."
+        ],
+        "question_types": [
+            "frustration",
+            "resistance_to_change",
+            "blames_device",
+            "wants_simpler_option"
+        ]
+    },
+    {
+        "name": "Emily",
+        "age": 28,
+        "description": "Marketing manager, uses tech for work but not technical",
+        "tech_level": 3,
+        "style": "professional, efficient, asks smart non-technical questions",
+        "typical_phrases": [
+            "Is this necessary for my use case?",
+            "What's the benefit of doing this?",
+            "How often do I need to do this?",
+            "Will this affect my data?",
+            "What if I'm traveling?"
+        ],
+        "question_types": [
+            "business_impact",
+            "frequency_question",
+            "data_concern",
+            "scenario_based"
+        ]
+    },
+    {
+        "name": "James",
+        "age": 41,
+        "description": "Stay-at-home dad, manages family tech but not an expert",
+        "tech_level": 2,
+        "style": "practical, budget-conscious, family-focused",
+        "typical_phrases": [
+            "Will this cost anything?",
+            "Do my kids need to do this too?",
+            "Is there a free way?",
+            "How long does this take?",
+            "Can I do this later?"
+        ],
+        "question_types": [
+            "cost_concern",
+            "family_impact",
+            "timing_flexibility",
+            "free_alternative"
+        ]
+    },
+    {
+        "name": "Linda",
+        "age": 67,
+        "description": "Retired nurse, uses tablet for video calls and email",
+        "tech_level": 1,
+        "style": "cautious, worried about security, wants reassurance",
+        "typical_phrases": [
+            "Is this safe?",
+            "Will I lose my photos?",
+            "What if something goes wrong?",
+            "Should I back up first?",
+            "Are you sure this is right?"
+        ],
+        "question_types": [
+            "security_concern",
+            "data_loss_fear",
+            "safety_verification",
+            "backup_question"
+        ]
+    },
+    {
+        "name": "Kevin",
+        "age": 22,
+        "description": "College student, non-STEM major, uses phone for social media",
+        "tech_level": 3,
+        "style": "casual, tech-savvy but not technical, asks random questions",
+        "typical_phrases": [
+            "Cool, but why?",
+            "Does this affect my apps?",
+            "Is this gonna slow down my phone?",
+            "What's the point?",
+            "Is this a scam?"
+        ],
+        "question_types": [
+            "skepticism",
+            "performance_concern",
+            "app_impact",
+            "casual_inquiry"
+        ]
+    },
+    {
+        "name": "Dorothy",
+        "age": 79,
+        "description": "Grandmother, wants to FaceTime grandkids",
+        "tech_level": 1,
+        "style": "sweet, patient, very basic understanding",
+        "typical_phrases": [
+            "I just want to call my grandson.",
+            "This is so confusing.",
+            "My grandson does this for me usually.",
+            "Thank you for being patient with me.",
+            "What happens if I push the wrong button?"
+        ],
+        "question_types": [
+            "simple_goal_focus",
+            "self_deprecating",
+            "expresses_gratitude",
+            "fear_of_mistakes"
+        ]
+    },
+    {
+        "name": "Ahmed",
+        "age": 35,
+        "description": "Small business owner, needs device to work reliably",
+        "tech_level": 2,
+        "style": "practical, concerned about downtime, wants reliability",
+        "typical_phrases": [
+            "Can I use my phone while this is happening?",
+            "What if I need to make a call?",
+            "How long will it be unavailable?",
+            "Can this wait until after business hours?",
+            "Is there any risk?"
+        ],
+        "question_types": [
+            "availability_concern",
+            "business_continuity",
+            "risk_assessment",
+            "timing_preference"
+        ]
+    },
+    {
+        "name": "Sarah",
+        "age": 52,
+        "description": "School administrator, organized, follows instructions carefully",
+        "tech_level": 2,
+        "style": "methodical, wants to understand before doing",
+        "typical_phrases": [
+            "Let me make sure I understand...",
+            "So first I do X, then Y?",
+            "What should I see on screen?",
+            "How do I know it's working?",
+            "What happens next?"
+        ],
+        "question_types": [
+            "confirmation",
+            "sequence_verification",
+            "visual_aid_request",
+            "process_understanding"
+        ]
+    },
+    {
+        "name": "Mike",
+        "age": 62,
+        "description": "Retired engineer (civil, not computers), analytical",
+        "tech_level": 2,
+        "style": "asks technical questions in non-technical ways",
+        "typical_phrases": [
+            "What's the technical reason for this?",
+            "How does that work exactly?",
+            "Is this updating the firmware or software?",
+            "What's the difference between these options?",
+            "Does this affect the hardware?"
+        ],
+        "question_types": [
+            "technical_curiosity",
+            "distinction_questions",
+            "mechanism_understanding",
+            "hardware_vs_software"
+        ]
+    }
+]
