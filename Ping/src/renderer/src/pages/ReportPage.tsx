@@ -1,4 +1,4 @@
-import { Box,Typography, Table, TableBody,TableContainer,} from "@mui/material";
+import { Box,Typography} from "@mui/material";
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import Split from "react-split"
@@ -61,7 +61,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
 
         try {
             const pendingQuestion = recommendations.find(recommendation => recommendation.interType === "device-identification");
-            const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-summary" || recommendation.interType === "device-technical");
+            const updateRecommendation = recommendations.find(recommendation => recommendation.interType === "device-technical");
             let reply;
             if (pendingQuestion) {
                 const historyContent = pendingQuestion.content ?? "";
@@ -111,6 +111,7 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         ipAddress: string;
         hostId: string;
         hostnames: string | null;
+        identified?: string,
         interType: string;
     }
 
@@ -124,7 +125,6 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
     const [devices, setDevices] = useState<Device[]>([]);
     const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
     const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-    const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -218,18 +218,21 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
         }
     }, [selectedDevice, filePathEffective, scanIdEffective]);
 
-    const selectedDeviceName = devices.find(device => device.ipAddress === selectedDevice)?.hostnames
-        ? (() => {
-            try {
-                const parsed = JSON.parse(devices.find(device => device.ipAddress === selectedDevice)?.hostnames || "[]");
-                return Array.isArray(parsed) && parsed.length > 0 && parsed[0].trim() !== ""
-                    ? parsed[0]
-                    : selectedDevice
-            } catch {
-                return selectedDevice;
+    const selectedDeviceObject = devices.find(device => device.ipAddress === selectedDevice);
+    let selectedDeviceName = selectedDeviceObject?.ipAddress ?? selectedDevice;
+
+    if (selectedDeviceObject?.hostnames && selectedDeviceObject.hostnames !== "[]") {
+        try {
+            const parsed = JSON.parse(selectedDeviceObject.hostnames);
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].trim() !== "") {
+                selectedDeviceName = parsed[0];
             }
-        })()
-        : selectedDevice
+        } catch {}
+    }
+
+    if (selectedDeviceObject?.identified) {
+        selectedDeviceName = `${selectedDeviceObject.identified} - ${selectedDeviceName}`;
+    }
 
     return (
         <Box
@@ -296,6 +299,10 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                     displayName = parsed[0];
                                 }
                             } catch {}
+                        }
+
+                        if (device.identified) {
+                            displayName = `${device.identified} - ${displayName}`
                         }
 
                         const showAlert = device.interType === "device-identification"
@@ -417,79 +424,34 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                         Scan Time: {formatScanTime(scanStartTime)}
                                     </Typography>
                                 </Box>
-                                <TableContainer
+                                <Box
                                     sx={{
                                         width: "100%",
                                         overflowY: "auto",
-                                        "&::-webkit-scrollbar": {
-                                            width: "8px",
-                                        },
-                                        "&::-webkit-scrollbar-track": {
-                                            background: "rgba(255,255,255,0.05)",
-                                            borderRadius: "4px",
-                                        },
-                                        "&::-webkit-scrollbar-thumb": {
-                                            backgroundColor: "rgba(255,255,255,0.3)",
-                                            borderRadius: "4px",
-                                            transition: "background-color 0.3s",
-                                        },
-                                        "&:hover::-webkit-scrollbar-thumb": {
-                                            backgroundColor: "rgba(255,255,255,0.2)",
-                                        },
+                                        padding: "0 1rem",
+                                        boxSizing: "border-box",
+                                        "&::-webkit-scrollbar": { width: "8px" },
+                                        "&::-webkit-scrollbar-track": { background: "rgba(255,255,255,0.05)", borderRadius: "4px" },
+                                        "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(255,255,255,0.3)", borderRadius: "4px" },
                                     }}
                                 >
-                                    <Table>
-                                        {/* <TableHead>
-                                            <TableRow>
-                                                <TableCell
-                                                    sx={{
-                                                        color: "white",
-                                                        fontWeight: "bold"
-                                                    }}
-                                                >
-                                                    Description
-                                                </TableCell>
-                                                <TableCell
-                                                    sx={{
-                                                        color: "white",
-                                                        fontWeight: "bold"
-                                                    }}
-                                                >
-                                                    Recommendation
-                                                </TableCell>
-                                                <TableCell
-                                                    sx={{
-                                                        color: "white",
-                                                        align: "right",
-                                                        fontWeight: "bold"
-                                                    }}
-                                                >
-                                                </TableCell>
-                                            </TableRow>
-                                        </TableHead> */}
-                                        <TableBody>
-                                            {recommendations.map((recommendation) => {
-                                                return (
-                                                    <RecommendationChoice
-                                                        key={recommendation.interType}
-                                                        interType={recommendation.interType}
-                                                        content={
-                                                            recommendation.interType === "device-identification"
-                                                            ? null
-                                                            : recommendation.knowledgeRow || null
-                                                        }
-                                                        expanded={expandedRecommendation === recommendation.interType}
-                                                        onSelect={() =>setExpandedRecommendation(
-                                                            expandedRecommendation === recommendation.interType ? null : recommendation.interType)
-                                                        }
-                                                    />
-                                                );
-                                            })}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
+                                    {recommendations.map((recommendation) => {
+                                        return (
+                                            <RecommendationChoice
+                                                key={recommendation.interType}
+                                                interType={recommendation.interType}
+                                                content={
+                                                    recommendation.interType === "device-identification"
+                                                    ? null
+                                                    : recommendation.knowledgeRow || null
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </Box>
                             </Box>
-                    )}
+                        )
+                    }
                 </Box>
                 <Box
                     sx={{
@@ -538,10 +500,11 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                         {/* Chat history */}
                         <Box
                             sx={{
-                            flex: 1,
-                            overflowY: "auto",
-                            mb: 1,
-                            pr: 1
+                                flex: 1,
+                                overflowY: "auto",
+                                mb: 1,
+                                pr: 1,
+                                userSelect: "text"
                             }}
                         >
                             {chatMessages.map((msg, idx) => (
@@ -551,7 +514,8 @@ export default function ReportPage({filePath, selectedScan,}: ReportPageProps) {
                                     color: msg.role === "assistant" ? "#6cf" : "white",
                                     mb: 0.3,
                                     fontSize: "1rem",
-                                    fontWeight: "bold"
+                                    fontWeight: "bold",
+                                    userSelect: "text"
                                     }}
                                 >
                                     {msg.role === "assistant" ? "Ping" : "You"}

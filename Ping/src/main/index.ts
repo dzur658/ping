@@ -17,7 +17,7 @@ let deviceIDModelPath: string;
 let technicalAssistantModelPath: string;
 let currentModelPath: string | null;
 let isDownloading = false;
-
+const technicalAssistantSessions = new Map<string, any[]>();
 const execAsync = promisify(exec);
 
 async function detectGPU(): Promise<{ hasNvidia: boolean, hasAMD: boolean}> {
@@ -371,7 +371,7 @@ ipcMain.handle("llama:analyzeScanDevices", async (_, scanId: string) => {
             db.prepare(`
               INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
               VALUES (?, ?, ?, ?)
-            `).run(device.hostId, "device-summary", knowledgeContent, timestamp)
+            `).run(device.hostId, "device-technical", knowledgeContent, timestamp)
           }
         } else {
           db.prepare(`
@@ -478,7 +478,7 @@ ipcMain.handle("llama:askFollowup", async (_event, question, deviceId,) => {
       db.prepare(`
         INSERT OR REPLACE INTO llm (hostId, interType, content, timestamp)
         VALUES (?, ?, ?, ?)
-      `).run(deviceId, "device-summary", knowledgeContent, timestamp)
+      `).run(deviceId, "device-technical", knowledgeContent, timestamp)
       sendStatus("db:refresh", {
         phase: "Database refresh",
         message: "Refreshing db results"
@@ -500,6 +500,7 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
 
   const dbPath = path.join(app.getPath("userData"), "networkscans.db");
   const db = new Database(dbPath);
+  const existingSession = technicalAssistantSessions.get(deviceId);
 
   try {
     const deviceTag = db.prepare(`
@@ -509,14 +510,10 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
     `).get(deviceId)
 
     const history = db.prepare(`
-      SELECT content, interType
+      SELECT interType
       FROM llm
       WHERE hostId = ?  
     `).get(deviceId)
-
-    if (!history.content) {
-      throw new Error(`No history found for device ${deviceId}`)
-    }
 
     const systemPrompt = `You are a helpful, patient technical support assistant. Your role is to assist non-technical users with their devices and technology problems.
 
@@ -554,34 +551,14 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
       Refuse to directly answer questions requiring real-time data or specific product recommendations based on the current date.`
 
     let messages;
-
-    if (history.interType === "device-summary") {
+    if (existingSession) {
+      messages = existingSession
+    } else if (history.interType === "device-technical") {
       messages = [
         {role: "system", content: systemPrompt},
         {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
         {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
       ]
-      
-      db.prepare(`
-        UPDATE llm
-        SET interType = ?
-        WHERE hostId = ?
-      `).run("device-technical", deviceId)
-    } else if (history.interType === "device-technical") {
-      try {
-        messages = JSON.parse(history.content)
-      } catch {
-        messages = [
-          {role: "system", content: systemPrompt},
-          {role: "user", content: `[System Command]: Load reference for ${deviceTag.Identified}`},
-          {role: "assistant", content: `<think>\nTrigger: System Command received (\"Load reference for {device_str}\").\nAction: Retrieve \"{device_str} Update Guide\" from database.\nPlan: Output the full update instructions so the user has the context available immediately.\n</think> \n${history.content}`},
-        ]
-        db.prepare(`
-          UPDATE llm
-          SET interType = ?
-          WHERE hostId = ?
-        `).run("device-technical", deviceId)
-      }
     }
 
     messages.push({role: "user", content: question})
@@ -607,11 +584,7 @@ ipcMain.handle("llama:askPing", async (_event, question, deviceId) => {
 
     messages.push({role: "assistant", content: reply})
 
-    db.prepare(`
-      UPDATE llm
-      SET content = ?
-      WHERE hostId = ?
-    `).run(JSON.stringify(messages), deviceId)
+    technicalAssistantSessions.set(deviceId, messages)
 
     return reply;
   } finally {
@@ -662,7 +635,7 @@ ipcMain.handle('sqlite:getDevices', async (_, filePath: string, selectedScan: st
   const db = new Database(filePath);
   try {
     const allDevicesStatement = db.prepare(`
-      SELECT hosts.ipAddress,hosts.hostnames,hosts.hostId,llm.interType
+      SELECT hosts.ipAddress,hosts.hostnames,hosts.hostId,hosts.Identified as identified,llm.interType
       FROM hosts
       JOIN llm ON hosts.hostId = llm.hostId
       WHERE scanId = ?
@@ -699,7 +672,7 @@ ipcMain.handle('sqlite:getDeviceRecommendations', async (_, filePath: string, sc
     `)
     const deviceRow = devicestatement.get(scanId, selectedDevice);
 
-    if (deviceRow.interType === "device-summary" || deviceRow.interType === "device-technical") {
+    if (deviceRow.interType === "device-technical") {
       const deviceKnowledgeQuery = knowledgeBaseDB.prepare(`
         SELECT documentation
         FROM knowledge
@@ -755,7 +728,6 @@ ipcMain.handle("nmap:startScan", async (_, ipRange: string) => {
     : path.join(app.getAppPath(), 'resources', 'python', 'scripts')
 
     const scriptPaths = [
-      'vulscan.nse',
       'pingscan_cpe2json.nse',
       'console-detect-ouis.nse',
       'echo-detect-ouis.nse',

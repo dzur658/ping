@@ -18,6 +18,10 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
     const [scans, setScans] = useState<Scan[]>([]);
     //const [selectedScan, setLocalSelectedScan] = useState<string | null>(null);
     const navigate = useNavigate();
+    const formatScanTime = (timestamp: string | null) => {
+        if (!timestamp) return "";
+        return new Date(Number(timestamp) * 1000).toLocaleString();
+    }
 
     useEffect(() => {
         if (!filePath) {
@@ -144,7 +148,7 @@ export default function ScanSelection({filePath, setSelectedScan}: ScanSelection
                                         <ScanChoice
                                             key={scan.scanId}
                                             scanId={scan.scanId}
-                                            startTime={scan.startTime}
+                                            startTime={formatScanTime(scan.startTime)}
                                             onSelect={(scanId: string) => {
                                                 setSelectedScan(scanId);
                                                 navigate("/ReportPage")
