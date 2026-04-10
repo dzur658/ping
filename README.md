@@ -163,6 +163,11 @@ ping/
 
 ---
 
+## Hugging Face Collections 🤗
+
+- [Device ID](https://huggingface.co/collections/dzur658/ping-device-id): identifies the scanned device confidently
+- [Technical Support](https://huggingface.co/collections/dzur658/ping-technical-support): provides general technical support and security guidance for devices
+
 ## License
 
 Copyright 2026 Josiah Bronkema, Alex Dzurec, Jared Volle
