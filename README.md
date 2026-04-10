@@ -66,9 +66,13 @@ Ping is an Electron application composed of three layers:
 
 ## Getting Started
 
-### Install from a release
+### Install from a prebuilt Zip
 
-Download the latest installer from the [Releases](../../releases) page and run it. On first launch, Ping will download the two AI models (~6 GB total) before the main UI becomes available. A progress screen guides you through this step.
+You can find the prebuilt release of Ping as a zip file [here](https://drive.google.com/file/d/13fIwyz5RNlWMdPXfsEWiVoGk0q6bOF8m/view?usp=sharing). Note: this is a Google Drive link and running the installer will ask you to bypass antivirus as the release is unsigned currently.
+
+#### IMPORTANT
+Verify the sha256 hash from Google Drive matches the hash below. DO NOT run if the hash does not match.
+`E120A8D645F9463BE6F1718E05443F122268850D6F8DF49A6523DC2AA52B14F3`
 
 ### Build from source
 
