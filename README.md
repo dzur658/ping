@@ -29,6 +29,12 @@ Designed for non-technical users, Ping aims to protect households from being eas
 - **Scan history** - all scans are stored in a local SQLite database (`networkscans.db`) and can be reviewed at any time
 
 ---
+Ping includes seperate repositories for significant portions of work not included in the main app. This repository is for the Electron application
+and code running on the local user's device only. For code related to LLM training/experimentation and the unpackaged Nmap parsing pipeline go to the following repositories:
+- [LLM Training & Synthetic Data Generation](https://github.com/dzur658/ping-ai-dev)
+- [Nmap -> Sqlite Pipeline (Python)](https://github.com/dzur658/ping-nmap-sqlite)
+
+---
 
 ## Architecture
 
